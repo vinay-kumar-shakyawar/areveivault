@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["core", "server"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "UNLICENSED"
+publish = false
+
+[profile.dev.package."*"]
+# Argon2id at 64 MiB is painfully slow unoptimized; optimize dependencies even in debug/test builds.
+opt-level = 3
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3

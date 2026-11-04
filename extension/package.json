@@ -1,0 +1,32 @@
+{
+  "name": "extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "build:e2e": "node build.mjs --e2e",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "node build.mjs --e2e && node link-e2e.mjs && playwright test"
+  },
+  "dependencies": {
+    "@arevei/client": "workspace:*",
+    "@arevei/core-wasm": "workspace:*",
+    "@arevei/ui": "workspace:*",
+    "lucide-react": "0.460.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.48.2",
+    "@types/chrome": "0.0.280",
+    "@types/node": "20.17.6",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "esbuild": "0.24.0",
+    "jsdom": "25.0.1",
+    "typescript": "5.6.3",
+    "vitest": "2.1.5"
+  }
+}

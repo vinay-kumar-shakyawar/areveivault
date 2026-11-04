@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Arevei Vault — the password manager for a company of one</title>
+  <meta name="description" content="Every key to your company in one vault only you can open. Logins, 2FA codes, recovery codes, API keys and SSH keys, encrypted on your device. Built for solo founders.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta property="og:title" content="Arevei Vault — every key to your company, one vault only you can open">
+  <meta property="og:description" content="Logins, 2FA codes, recovery codes, API keys and SSH keys, encrypted on your device. Built for solo founders.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="av-silver" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e8e8e8"/>
+        <stop offset=".5" stop-color="#a8a9ad"/>
+        <stop offset="1" stop-color="#d4d4d4"/>
+      </linearGradient>
+      <symbol id="mark" viewBox="0 0 32 32">
+        <path class="mk-s" d="M16 3.5l10.5 4v7.9c0 6.5-4.4 11.3-10.5 13.6C9.9 26.7 5.5 21.9 5.5 15.4V7.5z" fill="none" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle class="mk-f" cx="16" cy="14" r="2.8"/>
+        <path class="mk-f" d="M14.7 16h2.6l.9 5.4h-4.4z"/>
+      </symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24"><path d="m4 17 6-6-6-6M12 19h8"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7M7 3v4a1 1 0 0 0 1 1h7"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+      <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+      <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+      <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7M6.6 6.6A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6M2 2l20 20M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></symbol>
+      <symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></symbol>
+      <symbol id="i-chrome" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M21.2 8H12M3.95 6.06 8.54 14M10.88 21.94 15.46 14"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></symbol>
+      <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+      <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    </defs>
+  </svg>
+
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="Arevei Vault home">
+        <svg class="brand-mark" width="28" height="28" aria-hidden="true"><use href="#mark"/></svg>
+        <span class="brand-word">Arevei <span>Vault</span></span>
+      </a>
+      <nav aria-label="Primary" class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#security">Security</a>
+        <a href="#self-host">Self-host</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn btn-primary btn-sm" href="{{APP_URL}}/signup">Create your vault</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- Hero -->
+    <section class="hero" id="top">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">For founders who are the whole IT department</p>
+          <h1>Every key to your company. <span class="dim">One vault only you can open.</span></h1>
+          <p class="lede">Arevei Vault keeps your logins, 2FA codes, recovery codes, API keys and SSH keys encrypted on your device before they ever reach a server. Organized by project, filled into the right site, and never readable by us.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="{{APP_URL}}/signup">Create your vault <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <a class="btn btn-ghost" href="#self-host">Self-host it instead</a>
+          </div>
+          <ul class="trust" aria-label="Highlights">
+            <li><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>Zero-knowledge encryption</li>
+            <li><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg>Built-in authenticator</li>
+            <li><svg class="ic" aria-hidden="true"><use href="#i-chrome"/></svg>Import from Chrome in minutes</li>
+          </ul>
+        </div>
+
+        <figure class="mock" aria-label="Arevei Vault showing an AWS root login with its live two-factor code">
+          <div class="mock-bar" aria-hidden="true"><span></span><span></span><span></span><em>vault.arevei.com</em></div>
+          <div class="mock-body" aria-hidden="true">
+            <aside class="mock-side">
+              <div class="mock-search"><svg class="ic"><use href="#i-search"/></svg>Search<kbd>⌘K</kbd></div>
+              <p class="mock-label">Vaults</p>
+              <p class="mock-row"><span class="av">P</span>Personal</p>
+              <p class="mock-label">Projects</p>
+              <p class="mock-row is-active"><svg class="ic"><use href="#i-folder"/></svg>My startup · Production</p>
+              <p class="mock-row"><svg class="ic"><use href="#i-folder"/></svg>My startup · Staging</p>
+              <p class="mock-row"><svg class="ic"><use href="#i-folder"/></svg>Client · Website</p>
+              <p class="mock-row"><svg class="ic"><use href="#i-folder"/></svg>Side project</p>
+              <p class="mock-label">Tools</p>
+              <p class="mock-row"><svg class="ic"><use href="#i-clock"/></svg>Authenticators</p>
+              <p class="mock-row"><svg class="ic"><use href="#i-shield"/></svg>Security check-up</p>
+            </aside>
+            <div class="mock-list">
+              <p class="mock-item is-active"><span class="av">A</span><span><b>AWS root</b><small>founder@yourco.com</small></span></p>
+              <p class="mock-item"><span class="av">S</span><span><b>Stripe</b><small>founder@yourco.com</small></span></p>
+              <p class="mock-item"><span class="av">C</span><span><b>Cloudflare</b><small>Registrar + DNS</small></span></p>
+              <p class="mock-item"><span class="av">G</span><span><b>GitHub org</b><small>yourco-admin</small></span></p>
+              <p class="mock-item"><span class="av">P</span><span><b>Postgres prod</b><small>db.internal:5432</small></span></p>
+              <p class="mock-item"><span class="av">O</span><span><b>OpenAI API key</b><small>prod · expires in 21 days</small></span></p>
+            </div>
+            <div class="mock-detail">
+              <div class="mock-head"><span class="av av-lg">A</span><div><b>AWS root</b><small>My startup · Production</small></div></div>
+              <dl>
+                <div><dt>Username</dt><dd>founder@yourco.com</dd></div>
+                <div><dt>Password</dt><dd class="pw">vK<i>7</i>qr<i>#</i>Lm<i>29</i>xT<i>!</i>wa<i>4</i>Pz</dd></div>
+                <div><dt>One-time code</dt><dd class="totp"><span>482 913</span><svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15"/><circle class="ring-fg" cx="18" cy="18" r="15"/></svg></dd></div>
+                <div><dt>Recovery codes</dt><dd>8 of 10 unused</dd></div>
+                <div><dt>Website</dt><dd>console.aws.amazon.com</dd></div>
+              </dl>
+              <p class="mock-copy"><svg class="ic"><use href="#i-copy"/></svg>Copied · clears in 30s</p>
+            </div>
+          </div>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Problem -->
+    <section class="section" aria-labelledby="problem-h">
+      <div class="wrap problem">
+        <div>
+          <h2 id="problem-h">Right now, your company's keys are scattered across five places.</h2>
+          <p class="section-lede">When you're a team of one, nobody owns security. So it ends up wherever was fastest at 2 a.m.</p>
+        </div>
+        <ul class="scatter">
+          <li><svg class="ic" aria-hidden="true"><use href="#i-chrome"/></svg><div><b>Passwords</b> saved in Chrome, tied to one browser profile.</div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg><div><b>2FA codes</b> on a single phone. Lose it and you're filing support tickets for a week.</div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg><div><b>Recovery codes</b> in a screenshot, a Notes file, or nowhere at all.</div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-file"/></svg><div><b>API keys</b> pasted into <code>.env</code> files, Slack DMs and old Notion pages.</div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-laptop"/></svg><div><b>SSH keys</b> on one laptop, with no copy anywhere.</div></li>
+        </ul>
+        <p class="problem-close">None of that is a problem until the day it is. <strong>Arevei Vault puts it all in one encrypted place before that day comes.</strong></p>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features" aria-labelledby="features-h">
+      <div class="wrap">
+        <h2 id="features-h" class="center">Built for the accounts that can sink a company.</h2>
+        <ul class="features">
+          <li class="feature feature-wide">
+            <svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg>
+            <h3>Organized by project</h3>
+            <p>Keep your startup, client work and side projects apart. Each project is its own encrypted vault, with your private accounts in a Personal Vault.</p>
+          </li>
+          <li class="feature feature-wide">
+            <svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg>
+            <h3>Your authenticator, backed up</h3>
+            <p>Add 2FA by pasting a secret or dropping in a QR screenshot. Live codes with a countdown, and they match Google Authenticator. Lose your phone, keep your access.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>
+            <h3>Recovery codes you can actually find</h3>
+            <p>Store backup codes per service and tick each one off as you use it, so you always know how many you have left.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-terminal"/></svg>
+            <h3>API keys and SSH keys, first-class</h3>
+            <p>Dedicated items for API keys (with environment and expiry date), SSH keys, and server or database credentials.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>
+            <h3>Autofill that won't fall for phishing</h3>
+            <p>The extension only offers a login on the exact site it belongs to. Look-alike domains, hidden fields and embedded login forms get nothing. It never fills without your click.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-save"/></svg>
+            <h3>Saves and updates as you go</h3>
+            <p>Log in or change a password and the extension offers to save or update it, with the old password kept in history.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>
+            <h3>Leave Chrome's password manager</h3>
+            <p>Import your Chrome passwords in a few minutes, then switch off Chrome's save prompts with one click. Also imports Bitwarden, 1Password and LastPass.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-activity"/></svg>
+            <h3>A security check-up</h3>
+            <p>See weak, reused and old passwords, accounts missing 2FA, and API keys about to expire. Optional breach check that never sends your password anywhere.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
+            <h3>Find anything fast</h3>
+            <p>Cmd/Ctrl+K search across every project, and one-click copy that clears the clipboard after 30 seconds.</p>
+          </li>
+          <li class="feature">
+            <svg class="ic" aria-hidden="true"><use href="#i-dice"/></svg>
+            <h3>A strong password every time</h3>
+            <p>Generate passwords or memorable passphrases with the length and characters each site demands.</p>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Security -->
+    <section class="section section-dark" id="security" aria-labelledby="security-h">
+      <div class="wrap security">
+        <div class="security-intro">
+          <svg class="security-mark" width="56" height="56" aria-hidden="true"><use href="#mark"/></svg>
+          <h2 id="security-h">We can't read your vault. That's the point.</h2>
+          <p class="section-lede">Everything is encrypted on your device before it's sent. Our servers only ever store scrambled data, including your item names and URLs. If our database leaked tomorrow, it would contain nothing anyone could use.</p>
+        </div>
+        <ol class="pillars">
+          <li>
+            <span class="num" aria-hidden="true">01</span>
+            <h3>Two secrets, not one.</h3>
+            <p>Your vault opens with your master password plus a Secret Key that only exists on your devices and your printed Emergency Kit. A stolen database is useless without both.</p>
+          </li>
+          <li>
+            <span class="num" aria-hidden="true">02</span>
+            <h3>Your password never leaves your device.</h3>
+            <p>Sign-in uses a protocol (OPAQUE) that proves you know your password without ever sending it, not even scrambled.</p>
+          </li>
+          <li>
+            <span class="num" aria-hidden="true">03</span>
+            <h3>Locks itself.</h3>
+            <p>The vault locks after 5 minutes idle and when you close the browser, and copied passwords are wiped from the clipboard after 30 seconds.</p>
+          </li>
+        </ol>
+        <p class="footnote"><span class="mono">Argon2id</span> key derivation · <span class="mono">XChaCha20-Poly1305</span> encryption with a separate key per item · <span class="mono">OPAQUE</span> sign-in · mandatory two-factor login · strict Content Security Policy with no third-party scripts</p>
+        <p class="honest"><svg class="ic" aria-hidden="true"><use href="#i-key"/></svg><span>Because only you hold the keys, we can't reset your master password. Keep your Emergency Kit somewhere safe.</span></p>
+      </div>
+    </section>
+
+    <!-- Grows with you -->
+    <section class="section" aria-labelledby="grow-h">
+      <div class="wrap grow">
+        <div>
+          <p class="eyebrow">Grows with you</p>
+          <h2 id="grow-h">Solo today. Ready for your first hire.</h2>
+          <p class="section-lede">You won't be alone forever. When a contractor, freelancer or cofounder joins, share just the project they need, nothing else.</p>
+        </div>
+        <ul class="grow-list">
+          <li><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><div><h3>Share one project, not your whole vault.</h3><p>Give a contractor the staging logins without showing them your bank or your personal accounts.</p></div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-eye-off"/></svg><div><h3>Read-only and copy-only access.</h3><p>Let someone use a login without being able to see or change the password.</p></div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg><div><h3>Clean offboarding.</h3><p>Remove someone in one step. Their access ends, the project's keys are re-encrypted, and you get a list of the credentials they could see so you can change them.</p></div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-activity"/></svg><div><h3>An activity log.</h3><p>See who viewed, copied or changed each credential, and when.</p></div></li>
+          <li><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><div><h3>Your Personal Vault stays personal.</h3><p>Nobody you invite can ever open it, including admins.</p></div></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Getting started -->
+    <section class="section" aria-labelledby="start-h">
+      <div class="wrap">
+        <h2 id="start-h" class="center">Set up in 10 minutes. Sleep better tonight.</h2>
+        <ol class="steps">
+          <li><h3>Create your vault.</h3><p>Pick a strong master password. We'll give you a Secret Key and a printable Emergency Kit.</p></li>
+          <li><h3>Turn on two-factor sign-in.</h3><p>Scan one QR code with your phone.</p></li>
+          <li><h3>Bring your passwords over.</h3><p>Import from Chrome, Bitwarden, 1Password or LastPass.</p></li>
+          <li><h3>Add the browser extension.</h3><p>Autofill on the sites you use every day, and stop Chrome asking to save passwords.</p></li>
+          <li><h3>Move your 2FA and recovery codes in.</h3><p>Start with AWS, Stripe, your domain registrar, GitHub and your email.</p></li>
+        </ol>
+
+        <div class="selfhost" id="self-host">
+          <div>
+            <svg class="ic ic-lg" aria-hidden="true"><use href="#i-server"/></svg>
+            <h3>Prefer to run it yourself?</h3>
+            <p>Arevei Vault runs on your own server with one Docker Compose command: database, automatic HTTPS and nightly encrypted backups included. Your data never touches our infrastructure.</p>
+            <a class="btn btn-ghost" href="{{SELF_HOST_GUIDE_URL}}">Read the self-hosting guide</a>
+          </div>
+          <pre class="code" aria-label="Self-hosting commands"><code><span class="c"># on your server</span>
+cp deploy/.env.example deploy/.env
+docker compose -f deploy/docker-compose.yml \
+  --env-file deploy/.env up -d --build
+
+<span class="c"># → https://vault.yourco.com is live</span></code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section" id="faq" aria-labelledby="faq-h">
+      <div class="wrap faq-wrap">
+        <h2 id="faq-h">Questions founders ask</h2>
+        <div class="faq">
+          <details>
+            <summary>What happens if I forget my master password?</summary>
+            <p>We can't reset it, because we never have it. Your Emergency Kit holds your Secret Key; the master password is the one thing only you know. Write it down and keep the kit somewhere safe.</p>
+          </details>
+          <details>
+            <summary>What if I lose my laptop?</summary>
+            <p>Your vault is encrypted and locks itself. Sign out the lost device from Settings, then sign in on a new one with your master password, Secret Key and 2FA code.</p>
+          </details>
+          <details>
+            <summary>Why not just use Chrome's password manager?</summary>
+            <p>Chrome is fine for everyday logins. It doesn't store 2FA secrets, recovery codes, API keys or SSH keys, it doesn't separate your projects, and it won't let you share one project with a contractor and take it back later.</p>
+          </details>
+          <details>
+            <summary>Do I still need an authenticator app on my phone?</summary>
+            <p>No, Arevei Vault generates the same codes. If you like, keep both while you switch over.</p>
+          </details>
+          <details>
+            <summary>Can you see my data?</summary>
+            <p>No. Item names, URLs, usernames and passwords are all encrypted before they leave your device. We store data we can't read.</p>
+          </details>
+          <details>
+            <summary>Is there a mobile app?</summary>
+            <p>The web app works in your phone's browser today. A native iPhone app with Face ID and AutoFill is on the roadmap.</p>
+          </details>
+          <details>
+            <summary>Can I get my data out?</summary>
+            <p>Yes. Export an encrypted backup any time, or a plain CSV after re-entering your master password.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final" aria-labelledby="final-h">
+      <div class="wrap final-inner">
+        <svg class="final-mark" width="64" height="64" aria-hidden="true"><use href="#mark"/></svg>
+        <h2 id="final-h">Lock down your company in an afternoon.</h2>
+        <p class="section-lede">Start with the five accounts that would hurt most to lose. Your future self, and your first hire, will thank you.</p>
+        <div class="cta-row center">
+          <a class="btn btn-primary" href="{{APP_URL}}/signup">Create your vault <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="btn btn-ghost" href="#self-host">Self-host it</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <a class="brand" href="#top" aria-label="Arevei Vault home">
+          <svg class="brand-mark" width="24" height="24" aria-hidden="true"><use href="#mark"/></svg>
+          <span class="brand-word">Arevei <span>Vault</span></span>
+        </a>
+        <p class="muted">Your keys, encrypted on your device.</p>
+      </div>
+      <nav aria-label="Footer" class="footer-links">
+        <a href="#security">Security</a>
+        <a href="#self-host">Self-hosting</a>
+        <a href="#features">Browser extension</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

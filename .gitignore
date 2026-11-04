@@ -1,0 +1,17 @@
+/target
+node_modules/
+dist/
+/packages/core-wasm/pkg/
+.env
+!.env.example
+deploy/.env
+deploy/backups/
+backups/
+*.age
+.terraform/
+*.tfstate*
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+/data/

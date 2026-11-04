@@ -1,0 +1,91 @@
+/*
+ * Arevei Vault design tokens — single source for web app, extension popup and
+ * injected autofill UI. iOS mirrors these values (docs/architecture.md §16).
+ *
+ * Accessibility additions vs. the brand sheet (all measured against WCAG 2.2 AA):
+ *  --silver-strong  light #6E6F73 (~5:1 on white) for focus rings, active icons and
+ *                   digit/symbol coloring of revealed passwords; #A8A9AD fails (2.3:1).
+ *  --border-input   input outlines need 3:1; --border (#D9D9D9 / #2A2A2A) is for dividers only.
+ */
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0a0a;
+  --surface: #141414;
+  --surface-raised: #1f1f1f;
+  --border: #2a2a2a;
+  --border-input: #6b6b6b;
+  --text: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --silver: #c0c0c0;
+  --silver-strong: #c0c0c0;
+  --silver-gradient: linear-gradient(135deg, #3a3a3a, #c0c0c0, #6b6b6b);
+  --primary: #f5f5f5;
+  --primary-text: #0a0a0a;
+  --danger: #f97066;
+  --warning: #fdb022;
+  --success: #47cd89;
+  --logo-fill: url(#av-silver);
+  --shadow-modal: 0 16px 48px rgb(0 0 0 / 0.6);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f5f5f5;
+  --surface-raised: #ebebeb;
+  --border: #d9d9d9;
+  --border-input: #8f8f8f;
+  --text: #0a0a0a;
+  --text-muted: #6b6b6b;
+  --silver: #a8a9ad;
+  --silver-strong: #6e6f73;
+  --silver-gradient: linear-gradient(135deg, #e8e8e8, #a8a9ad, #d4d4d4);
+  --primary: #0a0a0a;
+  --primary-text: #ffffff;
+  --danger: #b42318;
+  --warning: #b54708;
+  --success: #067647;
+  --logo-fill: #0a0a0a;
+  --shadow-modal: 0 16px 48px rgb(0 0 0 / 0.18);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #f5f5f5;
+    --surface-raised: #ebebeb;
+    --border: #d9d9d9;
+    --border-input: #8f8f8f;
+    --text: #0a0a0a;
+    --text-muted: #6b6b6b;
+    --silver: #a8a9ad;
+    --silver-strong: #6e6f73;
+    --silver-gradient: linear-gradient(135deg, #e8e8e8, #a8a9ad, #d4d4d4);
+    --primary: #0a0a0a;
+    --primary-text: #ffffff;
+    --danger: #b42318;
+    --warning: #b54708;
+    --success: #067647;
+    --logo-fill: #0a0a0a;
+    --shadow-modal: 0 16px 48px rgb(0 0 0 / 0.18);
+  }
+}
+
+:root {
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --radius-sm: 8px;
+  --radius: 10px;
+  --radius-lg: 12px;
+  --space: 8px;
+  --motion: 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion: 0ms linear;
+  }
+}

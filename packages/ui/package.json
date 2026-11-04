@@ -1,0 +1,21 @@
+{
+  "name": "@arevei/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tokens.css": "./src/tokens.css",
+    "./ui.css": "./src/ui.css",
+    ".": "./src/index.tsx"
+  },
+  "main": "./src/index.tsx",
+  "peerDependencies": {
+    "react": "18.3.1",
+    "lucide-react": "0.453.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "lucide-react": "0.453.0",
+    "react": "18.3.1"
+  }
+}

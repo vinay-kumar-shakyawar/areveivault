@@ -1,0 +1,14 @@
+{
+  "name": "arevei-vault",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "build:wasm": "bash scripts/build-wasm.sh",
+    "build": "pnpm build:wasm && pnpm -r --filter ./packages/* build && pnpm --filter web build && pnpm --filter extension build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}

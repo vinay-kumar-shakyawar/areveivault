@@ -1,0 +1,31 @@
+# Response headers the reverse proxy (Caddy) MUST send for every vault.arevei.com
+# response that serves this SPA (docs/architecture.md §12.1). The web build is
+# checked against this policy by scripts/check-csp.mjs (no inline script/style,
+# SRI on every tag, no external URLs).
+
+Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types arevei-default; upgrade-insecure-requests
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Resource-Policy: same-origin
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), clipboard-write=(self), publickey-credentials-get=(self)
+Cache-Control (index.html only): no-store
+Cache-Control (/assets/*, content-hashed): public, max-age=31536000, immutable
+
+# Only when the organization enables the opt-in HIBP breach check (Security page):
+#   connect-src 'self' https://api.pwnedpasswords.com
+# Only the first 5 hex chars of SHA-1(password) are sent, with "Add-Padding: true".
+# Without this exception the check simply fails closed with an error message.
+
+# Notes
+# - 'wasm-unsafe-eval' is required to instantiate the crypto engine (core.wasm).
+# - trusted-types arevei-default: the app's ONLY policy (src/lib/trustedTypes.ts) mints
+#   TrustedScriptURLs solely for the same-origin crypto worker bundle (new Worker() is a
+#   Trusted Types sink). It has no createHTML/createScript, so HTML sinks stay blocked. The codebase
+#   forbids dangerouslySetInnerHTML/innerHTML, so React never assigns HTML sinks.
+# - style-src 'self' without 'unsafe-inline' works: React sets style props through
+#   CSSOM (not governed by CSP), and nothing injects <style> elements at runtime.
+# - The crypto Worker and the .wasm file are loaded from /assets by script, so
+#   they are covered by dist/bundle-hashes.json rather than SRI attributes.

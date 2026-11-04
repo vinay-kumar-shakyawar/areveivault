@@ -1,0 +1,50 @@
+[package]
+name = "arevei-core"
+description = "Arevei Vault crypto + vault library (shared by web, extension, server, iOS)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+wasm = ["dep:wasm-bindgen", "getrandom/js", "uuid/js"]
+
+[dependencies]
+argon2 = { version = "0.5", features = ["zeroize"] }
+chacha20poly1305 = { version = "0.10", features = ["stream"] }
+hkdf = "0.12"
+hmac = "0.12"
+sha1 = "0.10"
+sha2 = "0.10"
+ed25519-dalek = { version = "2", features = ["rand_core", "zeroize"] }
+hpke = { version = "0.12", default-features = false, features = ["alloc", "x25519"] }
+opaque-ke = { version = "3", default-features = false, features = ["ristretto255-voprf"] }
+rand = "0.8"
+rand_core = { version = "0.6", features = ["getrandom"] }
+getrandom = "0.2"
+zeroize = { version = "1", features = ["derive"] }
+subtle = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+base32 = "0.5"
+hex = "0.4"
+thiserror = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+unicode-normalization = "0.1"
+unicode-security = "0.1"
+idna = "1"
+url = "2"
+psl = "2"
+zxcvbn = "3"
+csv = "1"
+rqrr = "0.8"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+wasm-bindgen = { version = "0.2", optional = true }
+
+[dev-dependencies]
+proptest = "1"

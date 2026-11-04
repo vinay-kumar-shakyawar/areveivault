@@ -1,0 +1,13 @@
+{
+  "name": "@arevei/core-wasm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./pkg/arevei_core.js",
+  "types": "./pkg/arevei_core.d.ts",
+  "exports": {
+    ".": "./pkg/arevei_core.js",
+    "./wasm": "./pkg/arevei_core_bg.wasm"
+  },
+  "files": ["pkg"]
+}

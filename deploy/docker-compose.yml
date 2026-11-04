@@ -1,0 +1,123 @@
+# Production self-hosting. See docs/setup-guide.md.
+#   cp deploy/.env.example deploy/.env   # fill in secrets
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+
+name: arevei-vault
+
+services:
+  caddy:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      VAULT_DOMAIN: ${VAULT_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge]
+
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://arevei:${POSTGRES_PASSWORD}@postgres:5432/arevei
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SERVER_SECRET_KEY: ${SERVER_SECRET_KEY}
+      PUBLIC_ORIGIN: https://${VAULT_DOMAIN}
+      ATTACHMENT_DIR: /data/attachments
+      TRUST_PROXY: "true"
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+      BIND_ADDR: 0.0.0.0:8080
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - attachments:/data/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/arevei-server", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    networks: [edge, internal]
+
+  postgres:
+    image: postgres:16.4-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: arevei
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: arevei
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arevei -d arevei"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+  backup:
+    build:
+      context: ./backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: arevei
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: arevei
+      AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-2}
+      RETAIN_DAILY: ${BACKUP_RETAIN_DAILY:-30}
+      RETAIN_MONTHLY: ${BACKUP_RETAIN_MONTHLY:-12}
+      RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
+    volumes:
+      - attachments:/data/attachments:ro
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [internal]
+
+volumes:
+  pgdata:
+  attachments:
+  caddy_data:
+  caddy_config:
+
+networks:
+  edge:
+  internal:
+    internal: true

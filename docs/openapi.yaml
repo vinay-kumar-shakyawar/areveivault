@@ -1,0 +1,459 @@
+openapi: 3.1.0
+info:
+  title: Arevei Vault API
+  version: 1.0.0
+  description: |
+    Zero-knowledge vault API. Every vault field is client-side ciphertext (base64).
+    Human-readable contract: docs/api.md. Implementation: /server.
+
+    State-changing requests must send `X-Arevei-Request: 1`. A foreign `Origin` is
+    rejected, except browser-extension origins on requests that carry no session cookie
+    (those authenticate with a Bearer token).
+servers:
+  - url: https://vault.arevei.com/api/v1
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: __Host-av_session }
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    CsrfHeader: { name: X-Arevei-Request, in: header, required: true, schema: { type: string, enum: ["1"] } }
+    Id: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    UserId: { name: user_id, in: path, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NoContent: { description: No content }
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string, enum: [bad_request, unauthorized, forbidden, not_found, conflict, rate_limited, internal] }
+        message: { type: string }
+        current: { $ref: "#/components/schemas/ItemRow", description: "Present on 409 from PUT /items/{id}" }
+    KdfParams:
+      type: object
+      required: [m_kib, t, p]
+      properties: { m_kib: { type: integer, minimum: 65536 }, t: { type: integer, minimum: 3 }, p: { type: integer, minimum: 1 } }
+    PublicKeys:
+      type: object
+      properties: { x25519: { type: string }, ed25519: { type: string } }
+    EncryptedKeyset:
+      type: object
+      required: [version, user_id, kdf, salt, wrapped_ask, private_keys, public_keys]
+      properties:
+        version: { type: integer }
+        user_id: { type: string, format: uuid }
+        kdf: { $ref: "#/components/schemas/KdfParams" }
+        salt: { type: string }
+        wrapped_ask: { type: string, description: ciphertext }
+        private_keys: { type: string, description: ciphertext }
+        public_keys: { $ref: "#/components/schemas/PublicKeys" }
+    KeyGrant:
+      type: object
+      required: [keyring_id, key_version, recipient_id, grantor_id, wrapped, signature]
+      properties:
+        keyring_id: { type: string, description: "vault id, org-admin:<org_id> or org-dir:<org_id>" }
+        key_version: { type: integer }
+        recipient_id: { type: string, format: uuid }
+        grantor_id: { type: string, format: uuid }
+        wrapped: { type: string, description: HPKE ciphertext }
+        signature: { type: string, description: Ed25519 by grantor }
+    MembershipCert:
+      type: object
+      properties:
+        org_id: { type: string }
+        user_id: { type: string }
+        email: { type: string }
+        x25519: { type: string }
+        ed25519: { type: string }
+        issued_at: { type: integer }
+        issuer_id: { type: string }
+        signature: { type: string }
+    Session:
+      type: object
+      properties:
+        user_id: { type: string, format: uuid }
+        email: { type: string }
+        org_id: { type: string, format: uuid }
+        role: { type: string, enum: [owner, admin, member] }
+        status: { type: string, enum: [active, pending_approval] }
+        device_id: { type: string, format: uuid }
+        session_token: { type: string, description: "Only in login/confirm responses (Bearer use)" }
+    ItemWrite:
+      type: object
+      required: [vault_id, version, key_version, wrapped_key, payload]
+      properties:
+        id: { type: string, format: uuid, description: ignored; path id is authoritative }
+        vault_id: { type: string, format: uuid }
+        version: { type: integer, description: "1 for create, else expected_version + 1" }
+        key_version: { type: integer, description: must equal the vault's current key version }
+        wrapped_key: { type: string }
+        payload: { type: string, maxLength: 1500000 }
+        expected_version: { type: [integer, "null"], description: "null = create" }
+    ItemRow:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        vault_id: { type: string, format: uuid }
+        version: { type: integer }
+        key_version: { type: integer }
+        wrapped_key: { type: string }
+        payload: { type: string }
+        revision: { type: integer }
+        created_at: { type: integer }
+        updated_at: { type: integer }
+        created_by: { type: [string, "null"] }
+        updated_by: { type: [string, "null"] }
+        deleted_at: { type: [integer, "null"] }
+    VaultRow:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [personal, project] }
+        client_id: { type: [string, "null"] }
+        name_enc: { type: [string, "null"] }
+        key_version: { type: integer }
+        admin_wrapped_key: { type: [string, "null"], description: owners/admins only }
+        role: { type: string, enum: [owner, manager, member, read_only] }
+        copy_only: { type: boolean }
+        revision: { type: integer }
+    SyncResponse:
+      type: object
+      properties:
+        revision: { type: integer }
+        org:
+          type: object
+          properties:
+            id: { type: string }
+            org_sign_pk: { type: string }
+            org_secrets: { type: [string, "null"], description: owners/admins only }
+        me:
+          type: object
+          properties: { user_id: { type: string }, role: { type: string }, status: { type: string } }
+        members:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id: { type: string }
+              email: { type: string }
+              role: { type: string }
+              status: { type: string }
+              public_keys: { $ref: "#/components/schemas/PublicKeys" }
+              cert: { oneOf: [{ $ref: "#/components/schemas/MembershipCert" }, { type: "null" }] }
+        vaults: { type: array, items: { $ref: "#/components/schemas/VaultRow" } }
+        clients:
+          type: array
+          items: { type: object, properties: { id: { type: string }, name_enc: { type: string }, revision: { type: integer } } }
+        grants: { type: array, items: { $ref: "#/components/schemas/KeyGrant" } }
+        items: { type: array, items: { $ref: "#/components/schemas/ItemRow" } }
+        purged_item_ids: { type: array, items: { type: string } }
+
+paths:
+  /auth/prelogin:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email], properties: { email: { type: string } } } } } }
+      responses:
+        "200": { description: Salt + KDF (deterministic fake values for unknown emails), content: { application/json: { schema: { type: object, properties: { salt: { type: string }, kdf: { $ref: "#/components/schemas/KdfParams" } } } } } }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/register/start:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [email, registration_request], properties: { email: { type: string }, invite_token: { type: [string, "null"] }, registration_request: { type: string } } }
+      responses:
+        "200": { description: OPAQUE registration response, content: { application/json: { schema: { type: object, properties: { registration_response: { type: string }, signup_token: { type: string } } } } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/register/finish:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signup_token, user_id, registration_upload, keyset]
+              properties:
+                signup_token: { type: string }
+                user_id: { type: string, format: uuid }
+                registration_upload: { type: string }
+                keyset: { $ref: "#/components/schemas/EncryptedKeyset" }
+                org_bootstrap:
+                  type: object
+                  description: Required when creating an organization (first user / ALLOW_SIGNUP)
+                  properties:
+                    org_id: { type: string, format: uuid }
+                    org_sign_pk: { type: string }
+                    org_secrets: { type: string }
+                    grants: { type: array, items: { $ref: "#/components/schemas/KeyGrant" } }
+                    cert: { $ref: "#/components/schemas/MembershipCert" }
+      responses:
+        "200": { description: Nothing persisted yet; confirm TOTP next, content: { application/json: { schema: { type: object, properties: { pending_token: { type: string }, totp_secret: { type: string }, otpauth_uri: { type: string } } } } } }
+        "400": { $ref: "#/components/responses/Error" }
+  /auth/mfa/totp/confirm:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [pending_token, code], properties: { pending_token: { type: string }, code: { type: string }, device_name: { type: string } } } } } }
+      responses:
+        "200": { description: Account created; session cookie set, content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+  /auth/login/start:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, credential_request], properties: { email: { type: string }, credential_request: { type: string } } } } } }
+      responses:
+        "200": { description: OPAQUE KE2 (fake-record flow for unknown users), content: { application/json: { schema: { type: object, properties: { credential_response: { type: string }, login_token: { type: string } } } } } }
+        "429": { $ref: "#/components/responses/Error" }
+  /auth/login/finish:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [login_token, credential_finalization], properties: { login_token: { type: string }, credential_finalization: { type: string } } } } } }
+      responses:
+        "200": { description: Password OK; MFA required, content: { application/json: { schema: { type: object, properties: { mfa_token: { type: string }, methods: { type: array, items: { type: string, enum: [totp] } } } } } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /auth/mfa/verify:
+    post:
+      security: []
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [mfa_token, code], properties: { mfa_token: { type: string }, code: { type: string }, device_name: { type: string } } } } } }
+      responses:
+        "200": { description: Session cookie set, content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /auth/logout:
+    post:
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /auth/session:
+    get:
+      responses:
+        "200": { description: Current session, content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } } }
+        "401": { $ref: "#/components/responses/Error" }
+  /keyset:
+    get:
+      responses: { "200": { description: Encrypted keyset, content: { application/json: { schema: { $ref: "#/components/schemas/EncryptedKeyset" } } } } }
+  /prefs:
+    get:
+      responses: { "200": { description: Encrypted prefs, content: { application/json: { schema: { type: object, properties: { blob: { type: [string, "null"] } } } } } } }
+    put:
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [blob], properties: { blob: { type: string } } } } } }
+      responses: { "200": { description: Stored } }
+  /devices:
+    get:
+      responses: { "200": { description: Devices, content: { application/json: { schema: { type: array, items: { type: object, properties: { id: { type: string }, name: { type: string }, created_at: { type: integer }, last_seen_at: { type: integer }, current: { type: boolean } } } } } } } }
+  /devices/{id}:
+    delete:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" }, "404": { $ref: "#/components/responses/Error" } }
+  /sync:
+    get:
+      parameters: [{ name: since, in: query, schema: { type: integer, default: 0 } }]
+      responses: { "200": { description: Sync payload, content: { application/json: { schema: { $ref: "#/components/schemas/SyncResponse" } } } } }
+  /events:
+    get:
+      description: "Server-Sent Events: `event: sync`, `data: {\"revision\": N}`; keep-alive every 25 s."
+      responses: { "200": { description: text/event-stream } }
+  /items/{id}:
+    put:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ItemWrite" } } } }
+      responses:
+        "200": { description: Stored row, content: { application/json: { schema: { $ref: "#/components/schemas/ItemRow" } } } }
+        "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error" }
+    delete:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }, { name: purge, in: query, schema: { type: boolean } }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /items/{id}/restore:
+    post:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "200": { description: Restored row, content: { application/json: { schema: { $ref: "#/components/schemas/ItemRow" } } } } }
+  /clients:
+    post:
+      description: admin+
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [id, name_enc], properties: { id: { type: string, format: uuid }, name_enc: { type: string } } } } } }
+      responses: { "200": { description: Created } }
+  /clients/{id}:
+    put:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name_enc], properties: { name_enc: { type: string } } } } } }
+      responses: { "200": { description: Updated } }
+    delete:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" }, "409": { $ref: "#/components/responses/Error" } }
+  /vaults:
+    post:
+      description: admin+
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id, name_enc, key_version, admin_wrapped_key]
+              properties:
+                id: { type: string, format: uuid }
+                client_id: { type: [string, "null"] }
+                name_enc: { type: string }
+                key_version: { type: integer, enum: [1] }
+                admin_wrapped_key: { type: string }
+                grants: { type: array, items: { $ref: "#/components/schemas/KeyGrant" } }
+      responses: { "200": { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/VaultRow" } } } } }
+  /vaults/{id}:
+    put:
+      description: admin+ or manager
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [name_enc], properties: { name_enc: { type: string } } } } } }
+      responses: { "200": { description: Updated } }
+    delete:
+      description: admin+. Items are purged (tombstoned) and the vault removed.
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /vaults/{id}/members:
+    get:
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Members, content: { application/json: { schema: { type: array, items: { type: object, properties: { user_id: { type: string }, role: { type: string }, copy_only: { type: boolean } } } } } } } }
+  /vaults/{id}/members/{user_id}:
+    put:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/UserId" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role: { type: string, enum: [manager, member, read_only] }
+                copy_only: { type: boolean }
+                grant: { oneOf: [{ $ref: "#/components/schemas/KeyGrant" }, { type: "null" }] }
+      responses: { "200": { description: Updated }, "400": { $ref: "#/components/responses/Error" } }
+    delete:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/UserId" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /vaults/{id}/rotate:
+    post:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key_version, name_enc, admin_wrapped_key, grants, items]
+              properties:
+                key_version: { type: integer, description: current + 1 }
+                name_enc: { type: string }
+                admin_wrapped_key: { type: string }
+                grants: { type: array, items: { $ref: "#/components/schemas/KeyGrant" }, description: must cover every user in vault_permissions }
+                items:
+                  type: array
+                  description: must cover every item in the vault exactly once, at its current version
+                  items: { type: object, properties: { id: { type: string }, version: { type: integer }, key_version: { type: integer }, wrapped_key: { type: string } } }
+      responses: { "200": { description: Rotated }, "400": { $ref: "#/components/responses/Error" }, "409": { $ref: "#/components/responses/Error" } }
+  /org/invites:
+    post:
+      description: admin+ (admin invites by owners only)
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [email, role], properties: { email: { type: string }, role: { type: string, enum: [member, admin] } } } } } }
+      responses: { "200": { description: Invite, content: { application/json: { schema: { type: object, properties: { id: { type: string }, invite_token: { type: string }, expires_at: { type: integer } } } } } } }
+    get:
+      responses: { "200": { description: Invites } }
+  /org/invites/{id}:
+    delete:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /org/members/{user_id}/approve:
+    post:
+      parameters: [{ $ref: "#/components/parameters/UserId" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [cert], properties: { cert: { $ref: "#/components/schemas/MembershipCert" }, grants: { type: array, items: { $ref: "#/components/schemas/KeyGrant" } } } } } } }
+      responses: { "200": { description: Approved }, "400": { $ref: "#/components/responses/Error" } }
+  /org/members/{user_id}:
+    patch:
+      parameters: [{ $ref: "#/components/parameters/UserId" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [role], properties: { role: { type: string, enum: [owner, admin, member] }, grants: { type: array, items: { $ref: "#/components/schemas/KeyGrant" } } } } } } }
+      responses: { "200": { description: Updated } }
+    delete:
+      description: Offboard
+      parameters: [{ $ref: "#/components/parameters/UserId" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "200": { description: Offboarded, content: { application/json: { schema: { type: object, properties: { affected_vault_ids: { type: array, items: { type: string } } } } } } } }
+  /attachments/{id}:
+    put:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }, { name: item_id, in: query, required: true, schema: { type: string, format: uuid } }]
+      requestBody: { required: true, content: { application/octet-stream: { schema: { type: string, format: binary, maxLength: 11534336 } } } }
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+    get:
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses: { "200": { description: Ciphertext, content: { application/octet-stream: { schema: { type: string, format: binary } } } } }
+    delete:
+      parameters: [{ $ref: "#/components/parameters/Id" }, { $ref: "#/components/parameters/CsrfHeader" }]
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /audit/events:
+    post:
+      parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                events:
+                  type: array
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [event_type, target_type, target_id]
+                    properties:
+                      event_type: { type: string, enum: [item_view, item_reveal, item_copy, autofill, export, totp_copy] }
+                      target_type: { type: string, enum: [item, vault, org] }
+                      target_id: { type: string }
+                      vault_id: { type: [string, "null"] }
+                      client_ts: { type: integer }
+      responses: { "204": { $ref: "#/components/responses/NoContent" } }
+  /audit:
+    get:
+      description: admin+
+      parameters: [{ name: before, in: query, schema: { type: integer } }, { name: limit, in: query, schema: { type: integer, maximum: 500 } }]
+      responses: { "200": { description: Events (newest first) } }
+  /audit/verify:
+    get:
+      description: admin+. Recomputes the hash chain; signs a checkpoint if the head changed.
+      responses:
+        "200":
+          description: Verification
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  count: { type: integer }
+                  head_hash: { type: string }
+                  first_bad_seq: { type: [integer, "null"] }
+                  checkpoints: { type: array, items: { type: object, properties: { ts: { type: integer }, count: { type: integer }, head_hash: { type: string }, signature: { type: string } } } }
+                  server_audit_public_key: { type: string }
