@@ -1,0 +1,6 @@
+# Shell scripts and container files must stay LF: they are uploaded to Linux builders as-is.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+Caddyfile text eol=lf
+*.yml text eol=lf
