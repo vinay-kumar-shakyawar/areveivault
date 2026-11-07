@@ -18,7 +18,19 @@ export interface ApiOptions {
   /** Extension uses a bearer token; the web app relies on the HttpOnly cookie. */
   getToken?: () => string | null | Promise<string | null>;
   onUnauthorized?: () => void;
+  /**
+   * Called once per request the first time it is retried because the gateway reported the API
+   * unavailable (502/503/504), e.g. a Render free instance waking from spin-down. Lets the UI say
+   * "waking up the server" instead of surfacing the transient error.
+   */
+  onWaking?: () => void;
 }
+
+/** Gateway statuses that mean "the API did not answer", which is safe to retry: no handler ran. */
+const WAKING_STATUSES = new Set([502, 503, 504]);
+/** Backoff between retries (ms). Sums to ~56s, which covers a Render free-tier cold start. */
+const WAKING_DELAYS = [1000, 2000, 3000, 5000, 5000, 8000, 8000, 8000, 8000, 8000];
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export interface Session {
   user_id: string;
@@ -63,14 +75,24 @@ export class Api {
       headers["Content-Type"] = "application/json";
       payload = JSON.stringify(body);
     }
-    const res = await fetch(`${this.opts.baseUrl}/api/v1${path}`, {
+    const url = `${this.opts.baseUrl}/api/v1${path}`;
+    const init: RequestInit = {
       method,
       headers,
       body: payload,
       credentials: "same-origin",
       cache: "no-store",
       referrerPolicy: "no-referrer",
-    });
+    };
+    let res = await fetch(url, init);
+    // A 502/503/504 comes from the proxy in front of the API, not from the API itself, so the
+    // request never reached a handler and can be repeated. This mostly happens while the backend
+    // host wakes a spun-down instance; keep retrying for about a minute before giving up.
+    for (let attempt = 0; WAKING_STATUSES.has(res.status) && attempt < WAKING_DELAYS.length; attempt++) {
+      if (attempt === 0) this.opts.onWaking?.();
+      await sleep(WAKING_DELAYS[attempt]);
+      res = await fetch(url, init);
+    }
     if (res.status === 401) this.opts.onUnauthorized?.();
     if (!res.ok) {
       let data: any = {};

@@ -15,3 +15,10 @@ playwright-report/
 test-results/
 .DS_Store
 /data/
+
+# EC2 launcher private key and generated user data
+deploy/aws-ec2/*.pem
+deploy/aws-ec2/user-data.generated.sh
+.vercel
+
+.env*

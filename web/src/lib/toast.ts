@@ -22,7 +22,7 @@ function push(tone: Toast["tone"], text: string, ms = 4000) {
 }
 
 export const toast = {
-  info: (t: string) => push("neutral", t),
+  info: (t: string, ms?: number) => push("neutral", t, ms),
   success: (t: string) => push("success", t),
   error: (t: string) => push("danger", t, 6000),
 };

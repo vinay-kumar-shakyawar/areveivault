@@ -65,10 +65,18 @@ function newTransport(): WorkerTransport {
 transport = newTransport();
 export const engine: Engine = createEngine((m, a) => transport!.call(m, a));
 
+let wakingToastAt = 0;
 export const api = new Api({
   baseUrl: "",
   onUnauthorized: () => {
     if (state.phase === "unlocked") lock("Your session ended. Sign in again.");
+  },
+  onWaking: () => {
+    // Several requests can hit the sleeping backend at once; show one toast per minute.
+    const now = Date.now();
+    if (now - wakingToastAt < 60_000) return;
+    wakingToastAt = now;
+    toast.info("Waking up the server. This can take up to a minute.", 15_000);
   },
 });
 
