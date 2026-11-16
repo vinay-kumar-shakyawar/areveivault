@@ -22,3 +22,4 @@ deploy/aws-ec2/user-data.generated.sh
 .vercel
 
 .env*
+.neon
