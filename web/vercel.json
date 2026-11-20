@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd .. && bash deploy/vercel/install-web.sh",
-  "buildCommand": "cd .. && export PATH=\"$HOME/.cargo/bin:$PATH\" && bash scripts/build-wasm.sh && pnpm --filter web build && APP_URL=/ ASSET_BASE=/welcome/ node landing/build.mjs && mkdir -p web/dist/welcome && cp -r landing/dist/. web/dist/welcome/ && rm -f web/dist/welcome/_headers",
+  "buildCommand": "cd .. && bash deploy/vercel/build-web.sh",
   "outputDirectory": "dist",
   "framework": null,
   "redirects": [
