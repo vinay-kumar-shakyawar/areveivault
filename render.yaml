@@ -1,5 +1,5 @@
 # Render Blueprint: hosts the Arevei Vault API (Rust), Postgres and Redis.
-# The web bundle is served by Vercel (deploy/vercel/web.json), which rewrites /api/* here.
+# The web bundle is served by Vercel (web/vercel.json), which rewrites /api/* here.
 # Apply: https://render.com/deploy?repo=https://github.com/vinay-kumar-shakyawar/areveivault
 services:
   - type: web

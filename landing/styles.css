@@ -74,6 +74,8 @@ a { color: inherit; }
 .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color var(--motion); }
 .nav-links a:hover { color: var(--text); }
 .nav .btn { margin-left: auto; }
+.nav .btn + .btn { margin-left: -12px; }
+@media (max-width: 479px) { .nav .btn-primary { display: none; } }
 @media (min-width: 860px) { .nav-links { display: flex; } .nav .btn { margin-left: 8px; } }
 
 /* ---------- hero ---------- */

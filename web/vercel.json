@@ -1,11 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bash deploy/vercel/install-web.sh",
-  "buildCommand": "export PATH=\"$HOME/.cargo/bin:$PATH\" && bash scripts/build-wasm.sh && pnpm --filter web build",
-  "outputDirectory": "web/dist",
+  "installCommand": "cd .. && bash deploy/vercel/install-web.sh",
+  "buildCommand": "cd .. && export PATH=\"$HOME/.cargo/bin:$PATH\" && bash scripts/build-wasm.sh && pnpm --filter web build && APP_URL=/ ASSET_BASE=/welcome/ node landing/build.mjs && mkdir -p web/dist/welcome && cp -r landing/dist/. web/dist/welcome/ && rm -f web/dist/welcome/_headers",
+  "outputDirectory": "dist",
   "framework": null,
+  "redirects": [
+    { "source": "/", "missing": [{ "type": "cookie", "key": "__Host-av_session" }], "destination": "/welcome", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://arevei-vault-api.onrender.com/api/:path*" },
+    { "source": "/welcome", "destination": "/welcome/index.html" },
     { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -24,6 +28,7 @@
       ]
     },
     { "source": "/assets/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] },
-    { "source": "/", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] }
+    { "source": "/", "headers": [ { "key": "Cache-Control", "value": "no-store" } ] },
+    { "source": "/welcome/fonts/(.*)", "headers": [ { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" } ] }
   ]
 }

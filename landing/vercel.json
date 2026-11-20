@@ -1,8 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --frozen-lockfile --ignore-scripts",
-  "buildCommand": "node landing/build.mjs",
-  "outputDirectory": "landing/dist",
+  "installCommand": "cd .. && corepack enable && corepack prepare pnpm@10.14.0 --activate && pnpm install --frozen-lockfile --ignore-scripts",
+  "buildCommand": "cd .. && node landing/build.mjs",
+  "outputDirectory": "dist",
   "framework": null,
   "cleanUrls": true,
   "headers": [

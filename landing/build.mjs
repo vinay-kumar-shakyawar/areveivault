@@ -1,7 +1,9 @@
 // Builds the static landing page into landing/dist.
 //   node landing/build.mjs            build
 //   node landing/build.mjs --serve    build, then serve dist on http://127.0.0.1:4173
-// Env: APP_URL (default https://vault.arevei.com), SELF_HOST_GUIDE_URL (default #self-host).
+// Env: APP_URL (default https://vault.arevei.com; "/" for same-origin links), SELF_HOST_GUIDE_URL
+// (default #self-host), ASSET_BASE (default "": relative assets; e.g. "/welcome/" when the page is
+// served from a subfolder of the web app's origin).
 
 import { copyFileSync, createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -14,13 +16,15 @@ const out = join(here, "dist");
 
 const APP_URL = (process.env.APP_URL || "https://vault.arevei.com").replace(/\/$/, "");
 const SELF_HOST_GUIDE_URL = process.env.SELF_HOST_GUIDE_URL || "#self-host";
+const ASSET_BASE = process.env.ASSET_BASE || "";
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, "fonts"), { recursive: true });
 
 const html = readFileSync(join(here, "index.html"), "utf8")
   .replaceAll("{{APP_URL}}", APP_URL)
-  .replaceAll("{{SELF_HOST_GUIDE_URL}}", SELF_HOST_GUIDE_URL);
+  .replaceAll("{{SELF_HOST_GUIDE_URL}}", SELF_HOST_GUIDE_URL)
+  .replace(/href="(favicon\.svg|tokens\.css|styles\.css|fonts\/[^"]+)"/g, (_, f) => `href="${ASSET_BASE}${f}"`);
 if (html.includes("{{")) throw new Error("unreplaced placeholder in index.html");
 writeFileSync(join(out, "index.html"), html);
 copyFileSync(join(here, "styles.css"), join(out, "styles.css"));
