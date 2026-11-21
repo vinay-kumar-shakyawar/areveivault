@@ -123,13 +123,16 @@ jobs:
       - run: pnpm --filter extension typecheck
       - run: pnpm --filter extension test
       - run: pnpm --filter extension build
-      - run: npx playwright install --with-deps chromium
-      - name: Extension e2e (save, update, autofill, phishing cases)
-        run: xvfb-run -a pnpm --filter extension e2e
+      # Upload the release build before e2e, which rebuilds dist/ as a test build.
       - uses: actions/upload-artifact@v4
         with:
           name: extension-dist
           path: extension/dist
+      # Use the Playwright pinned in extension/package.json; a bare `npx playwright` at the root
+      # fetches whatever version is newest.
+      - run: pnpm --filter extension exec playwright install --with-deps chromium
+      - name: Extension e2e (save, update, autofill, phishing cases)
+        run: xvfb-run -a pnpm --filter extension e2e
 
   supply-chain:
     runs-on: ubuntu-24.04
