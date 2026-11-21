@@ -22,7 +22,7 @@ services:
       - key: SERVER_SECRET_KEY
         generateValue: true # base64-encoded 256-bit value, the format parse_secret expects
       - key: PUBLIC_ORIGIN
-        value: https://arevei-vault-web.vercel.app
+        value: https://vault.arevei.com
       - key: BIND_ADDR
         value: 0.0.0.0:10000
       - key: PORT
