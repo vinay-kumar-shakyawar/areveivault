@@ -10,7 +10,9 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "types": ["chrome", "node"],
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    // The e2e specs live outside this package; resolve their Playwright import from here.
+    "paths": { "@playwright/test": ["./node_modules/@playwright/test"] }
   },
   "include": ["src", "test", "../e2e/extension/**/*.ts"]
 }
