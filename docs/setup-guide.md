@@ -47,6 +47,17 @@ cp deploy/.env.example deploy/.env
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 ```
 
+### Coolify (or any proxy that already owns ports 80 and 443)
+
+`deploy/selfhost.sh` and `deploy/docker-compose.yml` bind ports 80/443 themselves, which collides with Coolify's proxy. Use `deploy/docker-compose.coolify.yml` instead: Coolify's proxy handles the certificate and forwards to the `caddy` service on port 80.
+
+1. In Coolify, add a new resource from the public Git repository, branch `main`, with the **Docker Compose** build pack. Base directory `/`, compose file `/deploy/docker-compose.coolify.yml`.
+2. Give the `caddy` service the domain `https://vault.yourco.com:80` (the `:80` is the container port Coolify should forward to). Leave the other services without a domain.
+3. Set the environment variables listed at the top of the compose file. `VAULT_DOMAIN` must be the same bare domain as in step 2.
+4. Deploy. The first build takes 15-25 minutes and needs about 4 GB of RAM + swap on the Coolify server.
+
+Backups go to the `backups` Docker volume rather than a folder in the repository.
+
 ### What is running
 
 | Service | Role |

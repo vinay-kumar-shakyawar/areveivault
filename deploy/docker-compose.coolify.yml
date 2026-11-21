@@ -1,0 +1,118 @@
+# Arevei Vault on Coolify (or behind any reverse proxy that terminates TLS).
+# Differences from docker-compose.yml: no host ports (Coolify's proxy owns 80/443 and the
+# certificate), Caddy serves plain HTTP on :80 inside the Docker network, and backups go to a named
+# volume. See "Coolify" in docs/setup-guide.md.
+#
+# Set in Coolify's environment variables:
+#   VAULT_DOMAIN           vault.yourco.com  (bare domain; must match the domain given to the caddy service)
+#   SERVER_SECRET_KEY      openssl rand -hex 32     (keep an offline copy)
+#   POSTGRES_PASSWORD      openssl rand -hex 24
+#   REDIS_PASSWORD         openssl rand -hex 24
+#   BACKUP_AGE_RECIPIENT   public key from `age-keygen` (optional for a trial; no backups without it)
+
+services:
+  caddy:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      SITE_ADDRESS: ":80"
+      TRUSTED_PROXIES: private_ranges
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://arevei:${POSTGRES_PASSWORD}@postgres:5432/arevei
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      SERVER_SECRET_KEY: ${SERVER_SECRET_KEY}
+      PUBLIC_ORIGIN: https://${VAULT_DOMAIN}
+      ATTACHMENT_DIR: /data/attachments
+      TRUST_PROXY: "true"
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
+      BIND_ADDR: 0.0.0.0:8080
+      RUST_LOG: ${RUST_LOG:-info}
+    volumes:
+      - attachments:/data/attachments
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/arevei-server", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  postgres:
+    image: postgres:16.4-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: arevei
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: arevei
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arevei -d arevei"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    security_opt: ["no-new-privileges:true"]
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    security_opt: ["no-new-privileges:true"]
+
+  backup:
+    build:
+      context: ./backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: arevei
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: arevei
+      AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-2}
+      RETAIN_DAILY: ${BACKUP_RETAIN_DAILY:-30}
+      RETAIN_MONTHLY: ${BACKUP_RETAIN_MONTHLY:-12}
+      RCLONE_REMOTE: ${BACKUP_RCLONE_REMOTE:-}
+    volumes:
+      - attachments:/data/attachments:ro
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  attachments:
+  backups:
+  caddy_data:
+  caddy_config:

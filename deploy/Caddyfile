@@ -1,14 +1,19 @@
 # Arevei Vault edge: TLS (ACME), static web bundle, security headers, /api proxy.
 # Headers mirror docs/architecture.md §12.1. Any change here must be reflected there.
 
+# SITE_ADDRESS is the domain (Caddy then gets its own certificate), or ":80" when another proxy in
+# front terminates TLS (Coolify, Traefik, a load balancer). In that case set TRUSTED_PROXIES so the
+# real client address is passed to the API for rate limiting.
+
 {
-	email {$ACME_EMAIL}
+	email {$ACME_EMAIL:unused@example.com}
 	servers {
 		protocols h1 h2
+		trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
 	}
 }
 
-{$VAULT_DOMAIN} {
+{$SITE_ADDRESS} {
 	encode zstd gzip
 
 	header {
@@ -28,7 +33,7 @@
 		reverse_proxy api:8080 {
 			# Server-Sent Events (/api/v1/events) must not be buffered.
 			flush_interval -1
-			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-For {client_ip}
 		}
 	}
 

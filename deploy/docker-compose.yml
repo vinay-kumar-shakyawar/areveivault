@@ -17,7 +17,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      VAULT_DOMAIN: ${VAULT_DOMAIN}
+      SITE_ADDRESS: ${VAULT_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
     volumes:
       - caddy_data:/data
