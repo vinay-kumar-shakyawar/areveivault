@@ -14,6 +14,8 @@ Backups are produced by the `backup` service in `deploy/docker-compose.yml`. Eac
 
 ## One-time setup
 
+If you used `deploy/selfhost.sh`, it already generated the key pair and set `BACKUP_AGE_RECIPIENT`. The private key is in `deploy/backup-identity.txt` on the server: move it offline as in step 2, delete the server copy, then continue from step 3.
+
 1. On an offline machine (or a hardware-backed machine an owner controls):
    ```bash
    age-keygen -o arevei-backup-identity.txt
@@ -27,7 +29,8 @@ Backups are produced by the `backup` service in `deploy/docker-compose.yml`. Eac
 
 - Daily at `BACKUP_HOUR_UTC` (default 02:00 UTC).
 - Keeps `BACKUP_RETAIN_DAILY` dailies (30) and `BACKUP_RETAIN_MONTHLY` monthlies (12, taken on the 1st).
-- Manual run: `docker compose -f deploy/docker-compose.yml exec backup backup.sh`
+- Manual run: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env exec -u backup backup backup.sh`
+- The container logs a warning at startup if `BACKUP_AGE_RECIPIENT` is empty or the backup directory isn't writable. Check with `docker compose -f deploy/docker-compose.yml --env-file deploy/.env logs backup`.
 
 ## Quarterly restore drill (required)
 
@@ -44,6 +47,8 @@ cd backups/daily && sha256sum -c SHA256SUMS-<timestamp>
 docker run --rm --network container:restore-drill -v "$PWD:/b" -v /path/to/identity:/id:ro \
   -e PGHOST=localhost -e PGUSER=arevei -e PGPASSWORD=drill -e PGDATABASE=drill \
   arevei-vault-backup restore.sh /b/db-<ts>.dump.age /b/attachments-<ts>.tar.age /id/arevei-backup-identity.txt
+
+#    Attachments are unpacked into /tmp/restore inside that container; add `-v "$PWD/restored:/tmp/restore"` to keep them.
 
 # 4. Sanity checks
 docker exec restore-drill psql -U arevei -d drill -c "select count(*) from items;"

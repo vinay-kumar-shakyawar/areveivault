@@ -68,9 +68,6 @@ ENV
   umask 022
 fi
 
-# The backup container runs as uid 10001 and must be able to write here.
-mkdir -p deploy/backups && chown 10001:10001 deploy/backups
-
 docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 
 echo "Arevei Vault is starting at https://${VAULT_DOMAIN}"

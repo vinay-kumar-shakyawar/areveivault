@@ -13,6 +13,31 @@ node extension/build.mjs --dev       # also allows http://localhost:5173 as the 
 
 Load `dist/chrome` with chrome://extensions → Developer mode → Load unpacked.
 
+## Which server it talks to
+
+`VAULT_ORIGIN` (default `https://vault.arevei.com`) is the built-in server. A signed-out user can point the extension at a self-hosted server from the sign-in screen (**Use a self-hosted server**). The service worker accepts only an `https://` origin (plus `http://localhost` for development), checks that `GET /api/v1/auth/session` answers like an Arevei Vault API, and stores the origin in `chrome.storage.local`. It can't be changed while signed in, so one server's cache is never mixed with another's session.
+
+The password never reaches the server in either case (sign-in is OPAQUE), so a mistyped address can't capture it.
+
+`externally_connectable` is fixed at build time, so the web-app → extension channel (`locked`, `lock-now`, `verify-build`) only works for the built-in origin. A team that wants it for their own server builds with `VAULT_ORIGIN` set.
+
+## Publishing
+
+```bash
+pnpm build:wasm
+pnpm --filter extension package      # release build + dist/arevei-vault-{chrome,firefox}-<version>.zip
+```
+
+`package.mjs` refuses to zip an E2E or `--dev` build and prints each archive's SHA-256. Bump `version` in `package.json` before every upload: the stores reject a repeated version.
+
+| Store | Upload | Notes |
+|---|---|---|
+| Chrome Web Store | `arevei-vault-chrome-*.zip` at https://chrome.google.com/webstore/devconsole | One-time US$5 developer registration. `<all_urls>` puts the item in the slower in-depth review queue. |
+| Microsoft Edge Add-ons | the same Chrome zip | Free; separate Partner Center account |
+| Firefox (AMO) | `arevei-vault-firefox-*.zip` | Untested in Firefox so far (see below). AMO also asks for the source code because the bundle is minified. |
+
+The Chrome listing asks for a justification per permission (the table below is written for that), a single-purpose statement ("password manager: save, fill and generate credentials"), a data-use disclosure (authentication information and website content are handled; nothing is sold or used for anything but the product), and a public privacy-policy URL. The extension loads no remote code: the WASM engine ships inside the package.
+
 ## Test
 
 ```bash
@@ -81,6 +106,7 @@ Set these through Google Admin (Chrome Browser Cloud Management), Windows GPO (`
 
 ## Known gaps
 
-- Verified only against the local E2E vault. Sign-in, MFA, sync, and audit upload against the real server haven't been exercised yet, because the server was being built in parallel.
+- Verified only against the local E2E vault. Sign-in, MFA, sync, and audit upload against the real server haven't been exercised end to end yet. Do this pass against production before submitting to a store.
+- The self-hosted server setting has unit-level coverage only (typecheck); it hasn't been run against a live self-hosted server.
 - Passkey (WebAuthn PRF) unlock isn't implemented. Unlock uses the master password.
 - Autofill coverage on the top-50 Arevei sites needs the site list and a live test pass.

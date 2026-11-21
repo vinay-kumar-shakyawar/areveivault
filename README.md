@@ -58,11 +58,10 @@ To try the extension, run `pnpm --filter extension build`, then load `extension/
 On a Linux host with Docker:
 
 ```bash
-cp deploy/.env.example deploy/.env    # fill in secrets, see the setup guide
-docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
+./deploy/selfhost.sh vault.yourco.com you@yourco.com
 ```
 
-Caddy gets TLS certificates automatically. For first-run steps, upgrades, and the AWS (Terraform) path, see [docs/setup-guide.md](docs/setup-guide.md). Back up `SERVER_SECRET_KEY` offline: if you lose it, every account is locked out. See [docs/backup-and-recovery.md](docs/backup-and-recovery.md).
+The script generates the secrets and the backup key, writes `deploy/.env`, and starts the Compose stack. Caddy gets TLS certificates automatically. For first-run steps, upgrades, and the AWS (Terraform) path, see [docs/setup-guide.md](docs/setup-guide.md). Back up `SERVER_SECRET_KEY` offline: if you lose it, every account is locked out. See [docs/backup-and-recovery.md](docs/backup-and-recovery.md).
 
 ## Tests
 

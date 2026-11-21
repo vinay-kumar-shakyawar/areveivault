@@ -54,6 +54,12 @@ export async function setPin(orgId: string, pk: string): Promise<void> {
   await local.set({ orgPins: pins });
 }
 
+/** Self-hosted server origin chosen by the user; null means the built-in default. */
+export async function getServer(): Promise<string | null> {
+  return ((await local.get("server")).server as string | undefined) ?? null;
+}
+export const setServer = (origin: string | null) => (origin ? local.set({ server: origin }) : local.remove("server"));
+
 export async function getSettings(): Promise<Settings> {
   return { autolockMinutes: 5, ...(((await local.get("settings")).settings as Partial<Settings>) ?? {}) };
 }

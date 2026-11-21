@@ -356,3 +356,24 @@ code {
   padding: 1px 6px;
   border-radius: 6px;
 }
+
+/* ---- sign-in helpers ---- */
+a {
+  color: var(--text);
+}
+.hint {
+  font-size: 11px;
+}
+.server-line {
+  margin: 0;
+  font-size: 12px;
+}
+.server-line .link,
+.server-box .link {
+  height: auto;
+  font-size: 12px;
+}
+.server-box {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}

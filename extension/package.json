@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node build.mjs",
     "build:e2e": "node build.mjs --e2e",
+    "package": "node build.mjs && node package.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "node build.mjs --e2e && node link-e2e.mjs && playwright test"

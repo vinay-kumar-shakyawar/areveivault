@@ -23,3 +23,6 @@ deploy/aws-ec2/user-data.generated.sh
 
 .env*
 .neon
+
+# Backup decryption key written by deploy/selfhost.sh (move it offline)
+deploy/backup-identity.txt

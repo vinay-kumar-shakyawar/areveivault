@@ -13,8 +13,11 @@ export class ApiError extends Error {
 }
 
 export interface ApiOptions {
-  /** e.g. "https://vault.arevei.com" for the extension; "" for same-origin web app. */
-  baseUrl: string;
+  /**
+   * e.g. "https://vault.arevei.com" for the extension; "" for same-origin web app. A function is
+   * resolved on every request, for clients whose server address can change at runtime.
+   */
+  baseUrl: string | (() => string | Promise<string>);
   /** Extension uses a bearer token; the web app relies on the HttpOnly cookie. */
   getToken?: () => string | null | Promise<string | null>;
   onUnauthorized?: () => void;
@@ -75,7 +78,8 @@ export class Api {
       headers["Content-Type"] = "application/json";
       payload = JSON.stringify(body);
     }
-    const url = `${this.opts.baseUrl}/api/v1${path}`;
+    const base = typeof this.opts.baseUrl === "function" ? await this.opts.baseUrl() : this.opts.baseUrl;
+    const url = `${base}/api/v1${path}`;
     const init: RequestInit = {
       method,
       headers,

@@ -11,6 +11,7 @@ interface State {
   hasSecretKey: boolean;
   mfaPending: boolean;
   vaultOrigin: string;
+  defaultOrigin: string;
 }
 
 interface Summary {
@@ -65,7 +66,73 @@ function Header({ state, onLock, onSignOut }: { state: State; onLock?: () => voi
   );
 }
 
-function SignIn({ onDone, mfaPending }: { onDone: () => void; mfaPending: boolean }) {
+/** Lets a self-hoster point the extension at their own server. Only reachable while signed out. */
+function ServerSetting({ state, onChanged }: { state: State; onChanged: () => void }) {
+  const custom = state.vaultOrigin !== state.defaultOrigin;
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState(custom ? state.vaultOrigin : "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async (value: string) => {
+    setBusy(true);
+    setError(null);
+    const r = await rpc("setServer", { url: value });
+    setBusy(false);
+    if (r?.error) return setError(r.error);
+    setOpen(false);
+    onChanged();
+  };
+
+  if (!open)
+    return (
+      <p className="muted server-line">
+        Server: <span className="mono">{new URL(state.vaultOrigin).host}</span>{" "}
+        <button type="button" className="link" onClick={() => setOpen(true)}>
+          {custom ? "Change" : "Use a self-hosted server"}
+        </button>
+      </p>
+    );
+  return (
+    <div className="stack server-box">
+      <label>
+        Your server address
+        <input className="input mono" type="url" placeholder="https://vault.yourco.com" value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            // This sits inside the sign-in form: Enter must save the address, not submit sign-in.
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            if (url.trim()) void save(url);
+          }}
+          spellCheck={false}
+          autoFocus
+        />
+      </label>
+      {error && (
+        <p className="banner danger" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="actions">
+        <button type="button" className="secondary" disabled={busy || !url.trim()} onClick={() => void save(url)}>
+          {busy ? "Checking…" : "Save"}
+        </button>
+        {custom && (
+          <button type="button" className="link" disabled={busy} onClick={() => void save("")}>
+            Use {new URL(state.defaultOrigin).host}
+          </button>
+        )}
+        <button type="button" className="link" disabled={busy} onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SignIn({ state, onDone, onServerChanged }: { state: State; onDone: () => void; onServerChanged: () => void }) {
+  const mfaPending = state.mfaPending;
   const [step, setStep] = useState<"creds" | "mfa">(mfaPending ? "mfa" : "creds");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -102,6 +169,7 @@ function SignIn({ onDone, mfaPending }: { onDone: () => void; mfaPending: boolea
           <label>
             Secret Key
             <input className="input mono" placeholder="AV1-XXXXXX-…" required value={secretKey} onChange={(e) => setSecretKey(e.target.value)} spellCheck={false} />
+            <span className="hint">From your Emergency Kit. Asked once per browser.</span>
           </label>
         </>
       ) : (
@@ -118,6 +186,18 @@ function SignIn({ onDone, mfaPending }: { onDone: () => void; mfaPending: boolea
       <button className="primary" disabled={busy}>
         {busy ? "Working…" : step === "creds" ? "Continue" : "Verify"}
       </button>
+      {step === "creds" && (
+        <>
+          <p className="muted">
+            New to Arevei Vault?{" "}
+            <a href={state.vaultOrigin} target="_blank" rel="noreferrer">
+              Create your account
+            </a>{" "}
+            in the web vault first, then sign in here.
+          </p>
+          <ServerSetting state={state} onChanged={onServerChanged} />
+        </>
+      )}
     </form>
   );
 }
@@ -315,7 +395,7 @@ function App() {
     return (
       <>
         <Header state={state} />
-        <SignIn onDone={refresh} mfaPending={state.mfaPending} />
+        <SignIn state={state} onDone={refresh} onServerChanged={refresh} />
       </>
     );
   if (!state.unlocked)

@@ -16,7 +16,7 @@ APP_URL=https://vault.arevei.com SELF_HOST_GUIDE_URL=https://… node landing/bu
 
 ## Before launch
 
-- Set `SELF_HOST_GUIDE_URL` to the public setup guide. It defaults to the on-page `#self-host` section.
+- `REPO_URL` is the public source repository shown in the self-hosting commands. `SELF_HOST_GUIDE_URL` defaults to `docs/setup-guide.md` in that repository.
 - "Create your vault" links to `APP_URL/signup`. That only works for new founders once the hosted instance allows self-serve sign-up (`ALLOW_SIGNUP=true`).
 - Add Privacy and Terms pages and link them in the footer.
 - Work through the "Claims to verify before publishing" checklist in the copy doc (no audit claim, extension store links, the 10-minute setup claim).

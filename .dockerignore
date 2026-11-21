@@ -1,0 +1,15 @@
+# Keeps secrets, backups and host build output out of the image build context.
+.git
+**/node_modules
+**/dist
+target
+packages/core-wasm/pkg
+deploy/.env
+deploy/backups
+deploy/backup-identity.txt
+deploy/aws-ec2/*.pem
+**/.env
+**/.env.*
+!**/.env.example
+.vercel
+.neon

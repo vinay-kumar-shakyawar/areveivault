@@ -1,4 +1,6 @@
 # Production self-hosting. See docs/setup-guide.md.
+#   ./deploy/selfhost.sh vault.yourco.com you@yourco.com      # generates secrets, then runs the line below
+# or by hand:
 #   cp deploy/.env.example deploy/.env   # fill in secrets
 #   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
 

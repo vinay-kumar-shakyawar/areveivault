@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { CheckCircle2, FileUp, ShieldCheck, Trash2 } from "lucide-react";
+import { CheckCircle2, FileUp, LogIn, ShieldCheck, Trash2 } from "lucide-react";
 import { rpc } from "./rpc";
 
 /**
@@ -134,12 +134,50 @@ function Import() {
   );
 }
 
+function Account() {
+  const [s, setS] = useState<{ signedIn: boolean; unlocked: boolean; email: string | null; vaultOrigin: string } | null>(null);
+  useEffect(() => {
+    const read = () => void rpc("state").then(setS);
+    read();
+    // The user signs in from the toolbar popup, so poll until this page can see it.
+    const iv = setInterval(read, 2000);
+    return () => clearInterval(iv);
+  }, []);
+  if (!s) return null;
+  const ready = s.signedIn && s.unlocked;
+  return (
+    <section className="card">
+      <h2>
+        <LogIn size={18} strokeWidth={1.5} /> Before you start — Sign in to your vault
+      </h2>
+      {ready ? (
+        <p role="status">
+          <CheckCircle2 size={14} strokeWidth={1.5} /> Signed in as {s.email}. You're ready to import.
+        </p>
+      ) : (
+        <ol>
+          <li>
+            No account yet?{" "}
+            <a href={s.vaultOrigin} target="_blank" rel="noreferrer">
+              Create one in the web vault
+            </a>
+            . Keep the Emergency Kit it gives you: it holds your Secret Key.
+          </li>
+          <li>Click the Arevei Vault icon in the browser toolbar (pin it from the puzzle-piece menu if you don't see it).</li>
+          <li>{s.signedIn ? "Unlock with your master password." : "Sign in with your email, master password, Secret Key and two-factor code."}</li>
+        </ol>
+      )}
+    </section>
+  );
+}
+
 function App() {
   const [deleted, setDeleted] = useState(false);
   return (
     <main className="onboarding">
       <h1>Set up Arevei Vault</h1>
       <p className="muted">Move your saved passwords out of Chrome and make Arevei Vault your only password manager.</p>
+      <Account />
       <section className="card">
         <h2>Step 1 — Export your Chrome passwords</h2>
         <ol>

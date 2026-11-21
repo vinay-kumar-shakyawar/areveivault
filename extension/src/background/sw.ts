@@ -65,8 +65,42 @@ async function persistVolatile(): Promise<void> {
   await chrome.storage.session.set({ menus: [...menus.values()], pending: pending.toJSON() });
 }
 
+/** The server this extension talks to: the built-in default, or the user's self-hosted one. */
+async function vaultOrigin(): Promise<string> {
+  return (await store.getServer()) ?? VAULT_ORIGIN;
+}
+
+/**
+ * Normalizes a user-typed server address to an origin. HTTPS is required, except for
+ * localhost during development.
+ */
+function parseServerOrigin(input: string): string | null {
+  const text = input.trim();
+  let u: URL;
+  try {
+    u = new URL(text.includes("://") ? text : `https://${text}`);
+  } catch {
+    return null;
+  }
+  const local = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+  if (u.protocol !== "https:" && !(u.protocol === "http:" && local)) return null;
+  if (u.username || u.password) return null;
+  return u.origin;
+}
+
+/** True when an Arevei Vault API answers at `origin` (the session endpoint replies 401 JSON when signed out). */
+async function isVaultServer(origin: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${origin}/api/v1/auth/session`, { credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer" });
+    if (res.status !== 401 && res.status !== 200) return false;
+    return (res.headers.get("content-type") ?? "").includes("application/json");
+  } catch {
+    return false;
+  }
+}
+
 const api = new Api({
-  baseUrl: VAULT_ORIGIN,
+  baseUrl: vaultOrigin,
   getToken: async () => memToken ?? (await store.getAccount())?.token ?? null,
 });
 
@@ -589,9 +623,25 @@ async function onPageMessage(raw: any, sender: chrome.runtime.MessageSender): Pr
         email: acct?.email ?? null,
         hasSecretKey: acct ? !!(await loadSecretKey(acct.email)) : false,
         mfaPending: !!loginCtx,
-        vaultOrigin: VAULT_ORIGIN,
+        vaultOrigin: await vaultOrigin(),
+        defaultOrigin: VAULT_ORIGIN,
         settings: await store.getSettings(),
       };
+    }
+    case "setServer": {
+      // Switching servers while signed in would mix one server's cache with another's session.
+      if (await store.getAccount()) return { error: "Sign out before changing the server." };
+      const raw = String(a.url ?? "").trim();
+      if (!raw) {
+        await store.setServer(null);
+        return { ok: true, vaultOrigin: VAULT_ORIGIN };
+      }
+      const origin = parseServerOrigin(raw);
+      if (!origin) return { error: "Enter the address of your server, like https://vault.yourco.com. It must use HTTPS." };
+      if (!(await isVaultServer(origin))) return { error: `No Arevei Vault server answered at ${origin}. Check the address and that the server is running.` };
+      loginCtx = null;
+      await store.setServer(origin === VAULT_ORIGIN ? null : origin);
+      return { ok: true, vaultOrigin: origin };
     }
     case "signin": {
       const { email, password, secretKey } = a as { email: string; password: string; secretKey: string };
@@ -720,6 +770,8 @@ function deviceName(): string {
 
 // ------------------------------------------------------------------ vault web app (externally_connectable)
 
+// Browsers only deliver external messages from origins listed in the manifest's
+// externally_connectable, so a self-hosted origin set at runtime never reaches these handlers.
 function isVaultOrigin(origin: string | undefined): boolean {
   if (!origin) return false;
   return origin === VAULT_ORIGIN || EXTRA_VAULT_ORIGINS.includes(origin);

@@ -275,14 +275,16 @@
           <div>
             <svg class="ic ic-lg" aria-hidden="true"><use href="#i-server"/></svg>
             <h3>Prefer to run it yourself?</h3>
-            <p>Arevei Vault runs on your own server with one Docker Compose command: database, automatic HTTPS and nightly encrypted backups included. Your data never touches our infrastructure.</p>
+            <p>Arevei Vault runs on your own Linux server with Docker. One script generates the secrets and starts everything: database, automatic HTTPS and nightly encrypted backups. Your data never touches our infrastructure, and the browser extension connects to your server too.</p>
             <a class="btn btn-ghost" href="{{SELF_HOST_GUIDE_URL}}">Read the self-hosting guide</a>
           </div>
-          <pre class="code" aria-label="Self-hosting commands"><code><span class="c"># on your server</span>
-cp deploy/.env.example deploy/.env
-docker compose -f deploy/docker-compose.yml \
-  --env-file deploy/.env up -d --build
+          <pre class="code" aria-label="Self-hosting commands"><code><span class="c"># on a Linux server with Docker, 4 GB RAM,</span>
+<span class="c"># and DNS for your domain pointing at it</span>
+git clone {{REPO_URL}}.git
+cd areveivault
+./deploy/selfhost.sh vault.yourco.com you@yourco.com
 
+<span class="c"># first build takes 15-25 minutes, then</span>
 <span class="c"># → https://vault.yourco.com is live</span></code></pre>
         </div>
       </div>
