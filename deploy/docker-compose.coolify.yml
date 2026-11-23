@@ -34,10 +34,10 @@ services:
       dockerfile: server/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://arevei:${POSTGRES_PASSWORD}@postgres:5432/arevei
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
-      SERVER_SECRET_KEY: ${SERVER_SECRET_KEY}
-      PUBLIC_ORIGIN: https://${VAULT_DOMAIN}
+      DATABASE_URL: postgres://arevei:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in Coolify environment variables}@postgres:5432/arevei
+      REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in Coolify environment variables}@redis:6379/0
+      SERVER_SECRET_KEY: ${SERVER_SECRET_KEY:?set SERVER_SECRET_KEY in Coolify environment variables}
+      PUBLIC_ORIGIN: https://${VAULT_DOMAIN:?set VAULT_DOMAIN in Coolify environment variables}
       ATTACHMENT_DIR: /data/attachments
       TRUST_PROXY: "true"
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
@@ -51,7 +51,8 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "/usr/local/bin/arevei-server", "healthcheck"]
+      # The image has no curl: bash opens the TCP connection itself and expects HTTP 200 from /healthz.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /healthz HTTP/1.0\r\n\r\n' >&3 && head -n1 <&3 | grep -q ' 200 '"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -65,7 +66,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: arevei
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in Coolify environment variables}
       POSTGRES_DB: arevei
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -79,14 +80,14 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--save", "", "--appendonly", "no"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in Coolify environment variables}", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 10
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in Coolify environment variables}
     security_opt: ["no-new-privileges:true"]
 
   backup:
@@ -96,7 +97,7 @@ services:
     environment:
       PGHOST: postgres
       PGUSER: arevei
-      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in Coolify environment variables}
       PGDATABASE: arevei
       AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
       BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-2}
