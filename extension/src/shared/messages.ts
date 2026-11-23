@@ -20,14 +20,16 @@ export type MenuPortMessage =
   | { type: "menu:init"; token: string }
   | { type: "menu:select"; token: string; itemId: string; confirmInsecure: boolean; visible: boolean }
   | { type: "menu:generate"; token: string; visible: boolean }
-  | { type: "menu:close"; token: string };
+  | { type: "menu:close"; token: string }
+  | { type: "menu:unlock"; token: string };
 
 export type PromptPortMessage =
   | { type: "prompt:init"; token: string }
   | { type: "prompt:save"; token: string; vaultId: string; title: string; visible: boolean }
   | { type: "prompt:update"; token: string; visible: boolean }
   | { type: "prompt:never"; token: string }
-  | { type: "prompt:dismiss"; token: string };
+  | { type: "prompt:dismiss"; token: string }
+  | { type: "prompt:unlock"; token: string };
 
 export type ExternalMessage = { type: "locked" } | { type: "unlocked" } | { type: "lock-now" } | { type: "verify-build" };
 
@@ -82,6 +84,7 @@ export function validateMenuMessage(m: unknown): MenuPortMessage | null {
   switch (m.type) {
     case "menu:init":
     case "menu:close":
+    case "menu:unlock":
       return exactKeys(m, ["type", "token"]) ? (m as MenuPortMessage) : null;
     case "menu:select":
       return exactKeys(m, ["type", "token", "itemId", "confirmInsecure", "visible"]) &&
@@ -104,6 +107,7 @@ export function validatePromptMessage(m: unknown): PromptPortMessage | null {
     case "prompt:init":
     case "prompt:never":
     case "prompt:dismiss":
+    case "prompt:unlock":
       return exactKeys(m, ["type", "token"]) ? (m as PromptPortMessage) : null;
     case "prompt:save":
       return exactKeys(m, ["type", "token", "vaultId", "title", "visible"]) &&

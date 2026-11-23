@@ -13,6 +13,9 @@ export interface PendingCapture {
   /** For updates: the existing item. */
   itemId?: string;
   itemTitle?: string;
+  /** Captured while locked: save vs update is decided once the vault is unlocked. */
+  unclassified?: boolean;
+  formKind?: "login" | "signup" | "change" | "otp";
   createdAt: number;
   shown: boolean;
 }

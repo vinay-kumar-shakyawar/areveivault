@@ -16,7 +16,8 @@ ENV SOURCE_DATE_EPOCH=0
 RUN bash scripts/build-wasm.sh
 
 FROM node:20.18-bookworm AS web
-RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+# Node 20.18's bundled corepack has outdated signing keys and refuses current pnpm releases.
+RUN npm install -g pnpm@10.14.0
 WORKDIR /src
 COPY . .
 COPY --from=wasm /src/packages/core-wasm/pkg ./packages/core-wasm/pkg

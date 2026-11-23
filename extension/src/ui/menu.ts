@@ -32,7 +32,25 @@ function render() {
     return;
   }
   if (state.state === "locked") {
-    app.append(el("p", { class: "pad" }, ["Vault is locked. Unlock it from the Arevei Vault toolbar button."]));
+    app.append(
+      el("p", { class: "pad" }, [state.waiting ? "Unlock in the Arevei Vault window, then pick a login here." : "Vault is locked."]),
+      el(
+        "button",
+        {
+          class: "generate",
+          "data-action": "unlock",
+          onclick: () => {
+            state = { ...state, waiting: true };
+            render();
+            port.postMessage({ type: "menu:unlock", token });
+          },
+        },
+        [state.waiting ? "Open unlock again" : "Unlock to fill"],
+      ),
+    );
+    if (state.canGenerate) {
+      app.append(el("button", { class: "generate", onclick: () => port.postMessage({ type: "menu:generate", token, visible: isFrameVisible() }) }, ["Suggest strong password"]));
+    }
     return;
   }
   if (state.lookalike) {

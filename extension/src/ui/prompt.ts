@@ -18,7 +18,7 @@ function head(text: string) {
 
 port.onMessage.addListener((m) => {
   if (m.type === "state") render(m);
-  else if (m.type === "done") app.replaceChildren(head("Arevei Vault"), el("p", { class: "pad", role: "status" }, [m.kind === "saved" ? "Saved." : "Updated."]));
+  else if (m.type === "done") app.replaceChildren(head("Arevei Vault"), el("p", { class: "pad", role: "status" }, [m.kind === "saved" ? "Saved." : m.kind === "unchanged" ? "This login is already saved." : "Updated."]));
   else if (m.type === "error") {
     app.querySelector(".banner")?.remove();
     app.append(el("div", { class: "banner danger", role: "alert" }, [m.message]));
@@ -27,7 +27,29 @@ port.onMessage.addListener((m) => {
 
 function render(s: any) {
   if (s.state === "locked") {
-    app.replaceChildren(head("Save login?"), el("p", { class: "pad" }, [`Unlock Arevei Vault from the toolbar to save your login for ${s.host}.`]));
+    const unlock = el(
+      "button",
+      {
+        class: "primary",
+        "data-action": "unlock",
+        onclick: () => {
+          msg.textContent = "Unlock in the Arevei Vault window. This prompt continues automatically.";
+          unlock.textContent = "Open unlock again";
+          port.postMessage({ type: "prompt:unlock", token });
+        },
+      },
+      ["Unlock to save"],
+    );
+    const msg = el("p", { class: "pad" }, [`Arevei Vault is locked. Unlock it to save your login for ${s.host}.`]);
+    app.replaceChildren(
+      head("Save login?"),
+      msg,
+      el("div", { class: "actions" }, [
+        el("button", { class: "link", onclick: () => port.postMessage({ type: "prompt:never", token }) }, ["Never for this site"]),
+        el("button", { class: "secondary", onclick: () => port.postMessage({ type: "prompt:dismiss", token }) }, ["Not now"]),
+        unlock,
+      ]),
+    );
     return;
   }
   if (s.kind === "update") {

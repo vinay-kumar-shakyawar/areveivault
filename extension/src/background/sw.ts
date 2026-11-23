@@ -342,25 +342,75 @@ async function handleCapture(tabId: number, url: string, username: string, passw
   const domain = info?.registrable_domain ?? info?.host;
   if (!domain || (await store.isNeverSite(domain))) return null;
 
-  let kind: "save" | "update" = "save";
-  let itemId: string | undefined;
-  let itemTitle: string | undefined;
-  if (await isUnlocked()) {
-    const m = await matchFor(url);
-    if (m.lookalike) return null;
-    const candidates = m.matches.filter((x: any) => x.type === "login");
-    const sameUser = candidates.filter((x: any) => username && (x.subtitle ?? "").toLowerCase() === username.toLowerCase());
-    const target = sameUser[0] ?? (formKind === "change" && candidates.length === 1 ? candidates[0] : undefined);
-    if (target) {
-      const detail = await e.call<any>("get_item", { id: target.id });
-      if (detail.item.data.password === password) return null;
-      kind = "update";
-      itemId = target.id;
-      itemTitle = target.title;
+  if (!(await isUnlocked())) {
+    // Locked: hold the capture and decide save vs update after the user unlocks from the prompt.
+    const p = pending.put({ token: randomToken(), tabId, url, username, password, kind: "save", unclassified: true, formKind });
+    return p.token;
+  }
+  const c = await classifyCapture(url, username, password, formKind);
+  if (!c) return null;
+  const p = pending.put({ token: randomToken(), tabId, url, username, password, ...c });
+  return p.token;
+}
+
+/**
+ * Save or update? Null when there is nothing to do (look-alike site, or the password
+ * is already saved). Requires an unlocked vault.
+ */
+async function classifyCapture(
+  url: string,
+  username: string,
+  password: string,
+  formKind: FormKind | undefined,
+): Promise<{ kind: "save" | "update"; itemId?: string; itemTitle?: string } | null> {
+  const m = await matchFor(url);
+  if (m.lookalike) return null;
+  const candidates = m.matches.filter((x: any) => x.type === "login");
+  const sameUser = candidates.filter((x: any) => username && (x.subtitle ?? "").toLowerCase() === username.toLowerCase());
+  const target = sameUser[0] ?? (formKind === "change" && candidates.length === 1 ? candidates[0] : undefined);
+  if (!target) return { kind: "save" };
+  const e = await engine();
+  const detail = await e.call<any>("get_item", { id: target.id });
+  if (detail.item.data.password === password) return null;
+  return { kind: "update", itemId: target.id, itemTitle: target.title };
+}
+
+// ------------------------------------------------------------------ unlock requested from the inline menu / save prompt
+
+/**
+ * Inline menus and save prompts that asked for an unlock, with a callback that
+ * re-sends their state once the vault is unlocked. The master password is never
+ * typed into a frame embedded in the page: a page can steal keyboard focus from its
+ * own iframes, so unlock always happens in the extension's own popup or window.
+ */
+const unlockWaiters = new Map<chrome.runtime.Port, () => Promise<void>>();
+let unlockRequestedAt = 0;
+
+async function requestUnlock(port: chrome.runtime.Port, resume: () => Promise<void>): Promise<void> {
+  if (!unlockWaiters.has(port)) port.onDisconnect.addListener(() => unlockWaiters.delete(port));
+  unlockWaiters.set(port, resume);
+  unlockRequestedAt = Date.now();
+  try {
+    // Chrome 127+: opens the toolbar popup anchored to the extension icon.
+    await (chrome.action as any).openPopup();
+    return;
+  } catch {
+    /* unsupported or no focused window: fall back to a small extension window */
+  }
+  await chrome.windows.create({ url: chrome.runtime.getURL("popup.html?unlock=1"), type: "popup", width: 380, height: 560, focused: true });
+}
+
+async function resumeAfterUnlock(): Promise<void> {
+  const waiters = [...unlockWaiters.entries()];
+  unlockWaiters.clear();
+  for (const [, resume] of waiters) {
+    try {
+      await resume();
+    } catch {
+      /* the frame went away */
     }
   }
-  const p = pending.put({ token: randomToken(), tabId, url, username, password, kind, itemId, itemTitle });
-  return p.token;
+  await persistVolatile();
 }
 
 // ------------------------------------------------------------------ content script messages
@@ -467,7 +517,7 @@ async function onMenuMessage(port: chrome.runtime.Port, tabId: number, raw: unkn
   }
 }
 
-async function handleMenu(port: chrome.runtime.Port, tabId: number, msg: NonNullable<ReturnType<typeof validateMenuMessage>>) {
+async function handleMenu(port: chrome.runtime.Port, tabId: number, msg: NonNullable<ReturnType<typeof validateMenuMessage>>): Promise<void> {
   const ctx = menus.get(msg.token);
   // The menu iframe must live in the same tab the menu was opened for.
   if (!ctx || ctx.tabId !== tabId || Date.now() - ctx.createdAt > MENU_TOKEN_TTL_MS) {
@@ -489,7 +539,16 @@ async function handleMenu(port: chrome.runtime.Port, tabId: number, msg: NonNull
     menus.delete(ctx.token);
     return reply({ type: "done" });
   }
-  if (!(await isUnlocked())) return reply({ type: "state", state: "locked", canGenerate: false });
+  if (msg.type === "menu:unlock") {
+    if (await isUnlocked()) return handleMenu(port, tabId, { type: "menu:init", token: ctx.token });
+    return requestUnlock(port, async () => {
+      // Give the user a fresh menu lifetime after unlocking.
+      ctx.createdAt = Date.now();
+      menus.set(ctx.token, ctx);
+      await handleMenu(port, tabId, { type: "menu:init", token: ctx.token });
+    });
+  }
+  if (!(await isUnlocked())) return reply({ type: "state", state: "locked", canGenerate });
   await touch();
   const m = await matchFor(ctx.url, ctx.topUrl);
   if (msg.type === "menu:init") {
@@ -536,7 +595,7 @@ async function onPromptMessage(port: chrome.runtime.Port, tabId: number, raw: un
   }
 }
 
-async function handlePrompt(port: chrome.runtime.Port, tabId: number, msg: NonNullable<ReturnType<typeof validatePromptMessage>>) {
+async function handlePrompt(port: chrome.runtime.Port, tabId: number, msg: NonNullable<ReturnType<typeof validatePromptMessage>>): Promise<void> {
   const p = pending.byToken(msg.token);
   const reply = (m: unknown) => port.postMessage(m);
   if (!p || p.tabId !== tabId) return reply({ type: "error", message: "This prompt has expired." });
@@ -550,6 +609,19 @@ async function handlePrompt(port: chrome.runtime.Port, tabId: number, msg: NonNu
       p.shown = true;
       if (!(await isUnlocked())) return reply({ type: "state", state: "locked", host, kind: p.kind });
       await touch();
+      if (p.unclassified) {
+        const c = await classifyCapture(p.url, p.username, p.password, p.formKind);
+        if (!c) {
+          // Already saved (or a look-alike site): nothing to ask.
+          reply({ type: "done", kind: "unchanged" });
+          setTimeout(() => {
+            close();
+            void persistVolatile();
+          }, 1200);
+          return;
+        }
+        Object.assign(p, c, { unclassified: false });
+      }
       return reply({
         type: "state",
         state: "ok",
@@ -562,6 +634,11 @@ async function handlePrompt(port: chrome.runtime.Port, tabId: number, msg: NonNu
     }
     case "prompt:dismiss":
       return close();
+    case "prompt:unlock": {
+      const init = (): Promise<void> => handlePrompt(port, tabId, { type: "prompt:init", token: p.token });
+      if (await isUnlocked()) return init();
+      return requestUnlock(port, init);
+    }
     case "prompt:never": {
       const e = await engine();
       const info = await e.call<any>("parse_url", { url: p.url });
@@ -690,7 +767,11 @@ async function onPageMessage(raw: any, sender: chrome.runtime.MessageSender): Pr
       await touch();
       void syncNow();
       notifyExternal({ type: "unlocked" });
-      return { ok: true };
+      // Opened from an inline menu / save prompt: let it continue, and close the unlock UI.
+      const requested = Date.now() - unlockRequestedAt < 5 * 60_000;
+      unlockRequestedAt = 0;
+      void resumeAfterUnlock();
+      return { ok: true, close: requested };
     }
     case "lock":
       await lock();

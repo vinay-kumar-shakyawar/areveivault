@@ -213,8 +213,10 @@ function Unlock({ state, onDone }: { state: State; onDone: () => void }) {
     const r = await rpc("unlock", { password, secretKey: state.hasSecretKey ? undefined : secretKey });
     setBusy(false);
     setPassword("");
-    if (r?.error) setError(r.error);
-    else onDone();
+    if (r?.error) return setError(r.error);
+    // Opened from an inline menu / save prompt: that frame continues on its own.
+    if (r?.close) return window.close();
+    onDone();
   };
   return (
     <form className="pad stack unlock" onSubmit={submit}>
