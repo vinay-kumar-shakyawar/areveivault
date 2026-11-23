@@ -3,12 +3,11 @@
 # certificate), Caddy serves plain HTTP on :80 inside the Docker network, and backups go to a named
 # volume. See "Coolify" in docs/setup-guide.md.
 #
-# Set in Coolify's environment variables:
-#   VAULT_DOMAIN           vault.yourco.com  (bare domain; must match the domain given to the caddy service)
-#   SERVER_SECRET_KEY      openssl rand -hex 32     (keep an offline copy)
-#   POSTGRES_PASSWORD      openssl rand -hex 24
-#   REDIS_PASSWORD         openssl rand -hex 24
-#   BACKUP_AGE_RECIPIENT   public key from `age-keygen` (optional for a trial; no backups without it)
+# Nothing to set by hand: Coolify generates and keeps every secret through its "magic"
+# variables (SERVICE_PASSWORD_*), and SERVICE_URL_CADDY follows the domain you give the
+# caddy service. They appear under Environment Variables after the first deploy; copy
+# SERVICE_PASSWORD_64_SERVERSECRET somewhere safe, since the vault can't be restored without it.
+# Optional: BACKUP_AGE_RECIPIENT (public key from `age-keygen`) turns on encrypted nightly backups.
 
 services:
   caddy:
@@ -19,6 +18,8 @@ services:
     expose:
       - "80"
     environment:
+      # Tells Coolify to route the caddy service's domain to container port 80.
+      SERVICE_URL_CADDY_80:
       SITE_ADDRESS: ":80"
       TRUSTED_PROXIES: private_ranges
     volumes:
@@ -34,10 +35,10 @@ services:
       dockerfile: server/Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://arevei:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in Coolify environment variables}@postgres:5432/arevei
-      REDIS_URL: redis://:${REDIS_PASSWORD:?set REDIS_PASSWORD in Coolify environment variables}@redis:6379/0
-      SERVER_SECRET_KEY: ${SERVER_SECRET_KEY:?set SERVER_SECRET_KEY in Coolify environment variables}
-      PUBLIC_ORIGIN: https://${VAULT_DOMAIN:?set VAULT_DOMAIN in Coolify environment variables}
+      DATABASE_URL: postgres://arevei:${SERVICE_PASSWORD_POSTGRES}@postgres:5432/arevei
+      REDIS_URL: redis://:${SERVICE_PASSWORD_REDIS}@redis:6379/0
+      SERVER_SECRET_KEY: ${SERVICE_PASSWORD_64_SERVERSECRET}
+      PUBLIC_ORIGIN: ${SERVICE_URL_CADDY}
       ATTACHMENT_DIR: /data/attachments
       TRUST_PROXY: "true"
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-false}
@@ -66,7 +67,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: arevei
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in Coolify environment variables}
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
       POSTGRES_DB: arevei
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -80,14 +81,14 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD in Coolify environment variables}", "--save", "", "--appendonly", "no"]
+    command: ["redis-server", "--requirepass", "${SERVICE_PASSWORD_REDIS}", "--save", "", "--appendonly", "no"]
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 10
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in Coolify environment variables}
+      REDIS_PASSWORD: ${SERVICE_PASSWORD_REDIS}
     security_opt: ["no-new-privileges:true"]
 
   backup:
@@ -97,7 +98,7 @@ services:
     environment:
       PGHOST: postgres
       PGUSER: arevei
-      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in Coolify environment variables}
+      PGPASSWORD: ${SERVICE_PASSWORD_POSTGRES}
       PGDATABASE: arevei
       AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:-}
       BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-2}
