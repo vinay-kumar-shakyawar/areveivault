@@ -38,7 +38,7 @@ The source of truth for `/server`, `/web`, and `/extension`. The machine-readabl
 |---|---|---|
 | `POST /contact/self-host` | HTML form (`application/x-www-form-urlencoded`): `name`, `email`, `company?`, `team_size?` (`1 \| 2-10 \| 11-50 \| 51+`), `hosting?` (`own \| arevei \| unsure`), `message?`, `website` (honeypot, must be empty) | `303` to `LANDING_URL/thanks.html`, or to `LANDING_URL/request-failed.html` when the input is invalid or rate-limited |
 
-This is the landing page's "talk to us about self-hosting" form. It's the one state-changing route that doesn't need `X-Arevei-Request`, because a plain HTML form can't send it. It reads no cookie or session and only adds a row to `selfhost_requests`. Limits: 10 per minute per IP, 16 KB body.
+This is the landing page's "talk to us about self-hosting" form. It's the one state-changing route that doesn't need `X-Arevei-Request`, because a plain HTML form can't send it. It reads no cookie or session and only adds a row to `selfhost_requests`. If SMTP is configured, the request is also emailed to `CONTACT_NOTIFY_TO` / `CONTACT_NOTIFY_CC`. Limits: 10 per minute per IP, 16 KB body.
 
 ## Account
 

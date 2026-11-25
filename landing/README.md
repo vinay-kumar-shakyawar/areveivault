@@ -16,7 +16,7 @@ APP_URL=https://vault.arevei.com EXTENSION_URL=https://chromewebstore.google.com
 
 The "Talk to us" section is a plain HTML form (no JavaScript) that posts to `APP_URL/api/v1/contact/self-host`. The API stores the request in the `selfhost_requests` table and redirects the visitor to `thanks.html`, or to `request-failed.html` if the input was invalid or rate-limited. The API finds those pages through its `LANDING_URL` setting, which defaults to `PUBLIC_ORIGIN/welcome` (the single-domain setup). Set it on the API if the landing page lives anywhere else.
 
-Requests aren't emailed to anyone yet (the server has no email provider). Read them in the database:
+When the API has SMTP configured (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `SMTP_FROM_NAME`), each request is also emailed to `CONTACT_NOTIFY_TO` with `CONTACT_NOTIFY_CC` copied, and Reply-To set to the visitor so a reply goes straight to them. A failed email is logged and doesn't lose the request: the table is the record. To list them in the database:
 
 ```sql
 SELECT to_timestamp(created_at) AS received, name, email, company, team_size, hosting, message
@@ -32,7 +32,7 @@ A web page can't install a browser extension by itself: Chrome removed inline in
 ## Before launch
 
 - Publish the extension and set `EXTENSION_URL`.
-- Decide who checks `selfhost_requests`, and how often.
+- Set `SMTP_PASS` on the API and submit the form once to confirm the notification email arrives.
 - "Create your vault" links to `APP_URL/signup`. That only works for new founders once the hosted instance allows self-serve sign-up (`ALLOW_SIGNUP=true`).
 - Add Privacy and Terms pages and link them in the footer.
 - Work through the "Claims to verify before publishing" checklist in the copy doc (no audit claim, extension store links, the 10-minute setup claim).

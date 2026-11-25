@@ -31,6 +31,23 @@ services:
         value: "true"
       - key: ALLOW_SIGNUP
         value: "true"
+      # Email staff about each self-hosting request from the landing page.
+      - key: SMTP_HOST
+        value: smtp.resend.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        value: resend
+      - key: SMTP_PASS
+        sync: false # the Resend API key, set in the dashboard
+      - key: SMTP_FROM
+        value: info@joincloud.in
+      - key: SMTP_FROM_NAME
+        value: Arevei Vault
+      - key: CONTACT_NOTIFY_TO
+        value: vinay@arevei.com
+      - key: CONTACT_NOTIFY_CC
+        value: varun@arevei.com,rishabh@arevei.com
       - key: ATTACHMENT_DIR
         value: /data/attachments
       - key: RUST_LOG

@@ -23,6 +23,22 @@ pub struct Config {
     /// Prefix for Redis keys (lets several instances/tests share one Redis).
     pub redis_prefix: String,
     pub trash_retention_secs: i64,
+    /// Outgoing mail. `None` (no `SMTP_HOST`): nothing is emailed.
+    pub smtp: Option<Smtp>,
+    /// Who is told about a landing-page self-hosting request.
+    pub contact_notify_to: Vec<String>,
+    pub contact_notify_cc: Vec<String>,
+}
+
+/// Deliberately not `Debug`: holds the SMTP password.
+#[derive(Clone)]
+pub struct Smtp {
+    pub host: String,
+    pub port: u16,
+    pub user: String,
+    pub pass: String,
+    pub from: String,
+    pub from_name: String,
 }
 
 impl Config {
@@ -35,6 +51,26 @@ impl Config {
         let landing_url = match get("LANDING_URL", "").trim().trim_end_matches('/') {
             "" => format!("{public_origin}/welcome"),
             u => u.to_string(),
+        };
+        // Hosting panels often keep the quotes of a pasted `KEY="value"` line.
+        let plain = |k: &str| get(k, "").trim().trim_matches('"').trim().to_string();
+        let list = |k: &str| plain(k).split(',').map(|a| a.trim().to_lowercase()).filter(|a| !a.is_empty()).collect::<Vec<_>>();
+        let smtp = match plain("SMTP_HOST") {
+            host if host.is_empty() => None,
+            host => Some(Smtp {
+                host,
+                port: match plain("SMTP_PORT").as_str() {
+                    "" => 465,
+                    p => p.parse().context("SMTP_PORT must be a port number")?,
+                },
+                user: plain("SMTP_USER"),
+                pass: plain("SMTP_PASS"),
+                from: match plain("SMTP_FROM") {
+                    f if f.is_empty() => bail!("SMTP_FROM is required when SMTP_HOST is set"),
+                    f => f,
+                },
+                from_name: plain("SMTP_FROM_NAME"),
+            }),
         };
         Ok(Config {
             database_url: std::env::var("DATABASE_URL").context("DATABASE_URL is required")?,
@@ -51,6 +87,9 @@ impl Config {
             rate_limit_per_min: get("RATE_LIMIT_PER_MIN", "10").parse()?,
             redis_prefix: get("REDIS_PREFIX", "av"),
             trash_retention_secs: 30 * 24 * 3600,
+            smtp,
+            contact_notify_to: list("CONTACT_NOTIFY_TO"),
+            contact_notify_cc: list("CONTACT_NOTIFY_CC"),
         })
     }
 }

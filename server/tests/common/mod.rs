@@ -60,6 +60,9 @@ pub async fn spawn_with(f: impl FnOnce(&mut Config)) -> TestApp {
         rate_limit_per_min: 1000,
         redis_prefix: db_name.clone(),
         trash_retention_secs: 30 * 24 * 3600,
+        smtp: None,
+        contact_notify_to: Vec::new(),
+        contact_notify_cc: Vec::new(),
     };
     f(&mut cfg);
     let state = {
