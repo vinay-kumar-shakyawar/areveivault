@@ -32,6 +32,14 @@ The source of truth for `/server`, `/web`, and `/extension`. The machine-readabl
 
 **Rate limits:** login and prelogin allow 10 per minute per IP and 5 failures per account before exponential backoff. MFA allows 5 attempts per token.
 
+## Contact (public)
+
+| Method & path | Body | Response |
+|---|---|---|
+| `POST /contact/self-host` | HTML form (`application/x-www-form-urlencoded`): `name`, `email`, `company?`, `team_size?` (`1 \| 2-10 \| 11-50 \| 51+`), `hosting?` (`own \| arevei \| unsure`), `message?`, `website` (honeypot, must be empty) | `303` to `LANDING_URL/thanks.html`, or to `LANDING_URL/request-failed.html` when the input is invalid or rate-limited |
+
+This is the landing page's "talk to us about self-hosting" form. It's the one state-changing route that doesn't need `X-Arevei-Request`, because a plain HTML form can't send it. It reads no cookie or session and only adds a row to `selfhost_requests`. Limits: 10 per minute per IP, 16 KB body.
+
 ## Account
 
 | Method & path | Body | Response |

@@ -50,6 +50,7 @@ pub async fn spawn_with(f: impl FnOnce(&mut Config)) -> TestApp {
         redis_url: redis_url(),
         bind: "127.0.0.1:0".into(),
         public_origin: "https://vault.test".into(),
+        landing_url: "https://vault.test/welcome".into(),
         server_secret: [7u8; 32],
         allow_signup: false,
         trust_proxy: false,

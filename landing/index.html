@@ -85,7 +85,7 @@
           <p class="lede">Arevei Vault keeps your logins, 2FA codes, recovery codes, API keys and SSH keys encrypted on your device before they ever reach a server. Organized by project, filled into the right site, and never readable by us.</p>
           <div class="cta-row">
             <a class="btn btn-primary" href="{{APP_URL}}/signup">Create your vault <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-            <a class="btn btn-ghost" href="#self-host">Self-host it instead</a>
+            <a class="btn btn-ghost" href="#self-host">Have us self-host it for you</a>
           </div>
           <ul class="trust" aria-label="Highlights">
             <li><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>Zero-knowledge encryption</li>
@@ -267,25 +267,67 @@
           <li><h3>Create your vault.</h3><p>Pick a strong master password. We'll give you a Secret Key and a printable Emergency Kit.</p></li>
           <li><h3>Turn on two-factor sign-in.</h3><p>Scan one QR code with your phone.</p></li>
           <li><h3>Bring your passwords over.</h3><p>Import from Chrome, Bitwarden, 1Password or LastPass.</p></li>
-          <li><h3>Add the browser extension.</h3><p>Autofill on the sites you use every day, and stop Chrome asking to save passwords.</p></li>
+          <li><h3>Add the browser extension.</h3><p>Autofill on the sites you use every day, and stop Chrome asking to save passwords.</p><!--ext--><a class="btn btn-ghost btn-sm" href="{{EXTENSION_URL}}" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-chrome"/></svg>Add to Chrome</a><!--/ext--></li>
           <li><h3>Move your 2FA and recovery codes in.</h3><p>Start with AWS, Stripe, your domain registrar, GitHub and your email.</p></li>
         </ol>
 
         <div class="selfhost" id="self-host">
           <div>
             <svg class="ic ic-lg" aria-hidden="true"><use href="#i-server"/></svg>
-            <h3>Prefer to run it yourself?</h3>
-            <p>Arevei Vault runs on your own Linux server with Docker. One script generates the secrets and starts everything: database, automatic HTTPS and nightly encrypted backups. Your data never touches our infrastructure, and the browser extension connects to your server too.</p>
-            <a class="btn btn-ghost" href="{{SELF_HOST_GUIDE_URL}}">Read the self-hosting guide</a>
+            <h3>Want your own private Arevei Vault? Talk to us.</h3>
+            <p>Tell us a little about your setup and the Arevei team will self-host it for you: a dedicated Arevei Vault on your own domain, set up and looked after by us, so you never touch a server.</p>
+            <ul class="selfhost-points">
+              <li><svg class="ic" aria-hidden="true"><use href="#i-server"/></svg>Runs on your infrastructure or on a dedicated server we manage for you.</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>Still zero-knowledge: we run the server, and we still can't read your vault.</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-chrome"/></svg>The browser extension connects to your server too.</li>
+            </ul>
           </div>
-          <pre class="code" aria-label="Self-hosting commands"><code><span class="c"># on a Linux server with Docker, 4 GB RAM,</span>
-<span class="c"># and DNS for your domain pointing at it</span>
-git clone {{REPO_URL}}.git
-cd areveivault
-./deploy/selfhost.sh vault.yourco.com you@yourco.com
-
-<span class="c"># first build takes 15-25 minutes, then</span>
-<span class="c"># → https://vault.yourco.com is live</span></code></pre>
+          <form class="form" method="post" action="{{APP_URL}}/api/v1/contact/self-host" aria-labelledby="selfhost-form-h">
+            <h4 id="selfhost-form-h">Request a self-hosted setup</h4>
+            <div class="field">
+              <label for="sh-name">Your name</label>
+              <input id="sh-name" name="name" type="text" autocomplete="name" maxlength="120" required>
+            </div>
+            <div class="field">
+              <label for="sh-email">Work email</label>
+              <input id="sh-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+            </div>
+            <div class="field">
+              <label for="sh-company">Company <span class="opt">optional</span></label>
+              <input id="sh-company" name="company" type="text" autocomplete="organization" maxlength="160">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="sh-team">Team size</label>
+                <select id="sh-team" name="team_size">
+                  <option value="">Choose…</option>
+                  <option value="1">Just me</option>
+                  <option value="2-10">2–10</option>
+                  <option value="11-50">11–50</option>
+                  <option value="51+">51 or more</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="sh-hosting">Where should it run?</label>
+                <select id="sh-hosting" name="hosting">
+                  <option value="">Choose…</option>
+                  <option value="own">On our own infrastructure</option>
+                  <option value="arevei">On a server Arevei manages</option>
+                  <option value="unsure">Not sure yet</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="sh-message">Anything we should know? <span class="opt">optional</span></label>
+              <textarea id="sh-message" name="message" rows="3" maxlength="4000"></textarea>
+            </div>
+            <div class="hp" aria-hidden="true">
+              <label for="sh-website">Leave this field empty</label>
+              <input id="sh-website" name="website" type="text" tabindex="-1" autocomplete="off">
+            </div>
+            <button class="btn btn-primary" type="submit">Talk to Arevei <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            <p class="form-note">We only use these details to reply to your request.</p>
+          </form>
         </div>
       </div>
     </section>
@@ -335,7 +377,8 @@ cd areveivault
         <p class="section-lede">Start with the five accounts that would hurt most to lose. Your future self, and your first hire, will thank you.</p>
         <div class="cta-row center">
           <a class="btn btn-primary" href="{{APP_URL}}/signup">Create your vault <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-          <a class="btn btn-ghost" href="#self-host">Self-host it</a>
+          <!--ext--><a class="btn btn-ghost" href="{{EXTENSION_URL}}" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-chrome"/></svg>Add to Chrome</a><!--/ext-->
+          <a class="btn btn-ghost" href="#self-host">Talk to us about self-hosting</a>
         </div>
       </div>
     </section>

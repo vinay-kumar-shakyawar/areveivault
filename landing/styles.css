@@ -221,8 +221,37 @@ a { color: inherit; }
 .selfhost .ic-lg { color: var(--silver-strong); margin-bottom: 16px; }
 .selfhost h3 { font-size: 1.5rem; margin-bottom: 12px; }
 .selfhost p { color: var(--text-muted); margin-bottom: 24px; max-width: 32em; }
-.code { margin: 0; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); overflow-x: auto; font: 13px/1.7 var(--font-mono); }
-.code .c { color: var(--text-muted); }
+.selfhost-points { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; max-width: 32em; }
+.selfhost-points li { display: flex; gap: 12px; align-items: flex-start; color: var(--text-muted); font-size: 15px; }
+.selfhost-points .ic { color: var(--silver-strong); margin-top: 2px; }
+
+/* contact form (plain HTML post: the page ships no JavaScript) */
+.form { display: grid; gap: 16px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.form h4 { margin: 0; font-size: 1.0625rem; font-weight: 600; letter-spacing: -0.01em; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field-row { display: grid; gap: 16px; }
+@media (min-width: 560px) { .field-row { grid-template-columns: 1fr 1fr; } }
+.field label { font-size: 14px; font-weight: 500; }
+.field .opt { font-weight: 400; color: var(--text-muted); }
+.field input, .field select, .field textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border-input); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text); font: 400 15px/1.4 var(--font-ui);
+  transition: border-color var(--motion);
+}
+.field input, .field select { height: 42px; }
+.field textarea { resize: vertical; min-height: 84px; }
+.field input:hover, .field select:hover, .field textarea:hover { border-color: var(--text-muted); }
+.form .btn { border: 1px solid transparent; cursor: pointer; justify-self: start; }
+.selfhost .form-note { margin: 0; font-size: 13px; }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.steps .btn { margin-top: 16px; }
+.steps .btn .ic { width: 16px; height: 16px; }
+
+/* after-submit pages */
+.notice { min-height: 100vh; display: grid; place-items: center; padding: 48px 0; text-align: center; }
+.notice-inner { display: grid; gap: 20px; justify-items: center; max-width: 34em; }
+.notice p { color: var(--text-muted); font-size: 1.0625rem; }
 
 /* FAQ */
 .faq-wrap { display: grid; gap: 40px; }

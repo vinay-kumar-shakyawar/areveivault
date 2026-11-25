@@ -465,3 +465,35 @@ async fn csrf_and_headers() {
     assert_eq!(r.status, StatusCode::NO_CONTENT);
     assert_eq!(app.call("GET", "/auth/session", Some(&owner.token), None).await.status, StatusCode::UNAUTHORIZED);
 }
+
+#[tokio::test]
+async fn self_host_contact_form() {
+    let app = spawn().await;
+    let post = |body: &'static str| {
+        // A plain HTML form: no X-Arevei-Request, and `Origin: null` under no-referrer.
+        Request::builder()
+            .method("POST")
+            .uri("/api/v1/contact/self-host")
+            .header("origin", "null")
+            .header("content-type", "application/x-www-form-urlencoded")
+            .body(Body::from(body))
+            .unwrap()
+    };
+    let r = app
+        .send(post("name=Ada+Lovelace&email=Ada%40Example.com&company=Analytical&team_size=2-10&hosting=arevei&message=Hello&website="))
+        .await;
+    assert_eq!(r.status, StatusCode::SEE_OTHER);
+    assert_eq!(r.headers["location"], "https://vault.test/welcome/thanks.html");
+    // Invalid input and bots are redirected too; only the valid request is stored.
+    let r = app.send(post("name=&email=nope")).await;
+    assert_eq!(r.headers["location"], "https://vault.test/welcome/request-failed.html");
+    let r = app.send(post("name=Bot&email=bot%40example.com&website=http%3A%2F%2Fspam.example")).await;
+    assert_eq!(r.headers["location"], "https://vault.test/welcome/thanks.html");
+    let mut conn = app.owner_conn().await;
+    let rows: Vec<(String, String, String)> =
+        sqlx::query_as("SELECT name, email, hosting FROM selfhost_requests").fetch_all(&mut conn).await.unwrap();
+    assert_eq!(rows, vec![("Ada Lovelace".to_string(), "ada@example.com".to_string(), "arevei".to_string())]);
+    // The rest of the API still requires the CSRF header.
+    let req = Request::builder().method("POST").uri("/api/v1/auth/logout").body(Body::empty()).unwrap();
+    assert_eq!(app.send(req).await.status, StatusCode::FORBIDDEN);
+}

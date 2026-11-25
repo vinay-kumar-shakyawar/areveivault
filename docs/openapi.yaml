@@ -158,6 +158,27 @@ components:
         purged_item_ids: { type: array, items: { type: string } }
 
 paths:
+  /contact/self-host:
+    post:
+      summary: Landing-page "talk to us about self-hosting" form (plain HTML post, no CSRF header)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string, maxLength: 120 }
+                email: { type: string, maxLength: 254 }
+                company: { type: string, maxLength: 160 }
+                team_size: { type: string, enum: ["", "1", "2-10", "11-50", "51+"] }
+                hosting: { type: string, enum: ["", own, arevei, unsure] }
+                message: { type: string, maxLength: 4000 }
+                website: { type: string, description: Honeypot; must be empty }
+      responses:
+        "303": { description: "Redirect to LANDING_URL/thanks.html, or LANDING_URL/request-failed.html when the input is invalid or rate-limited" }
   /auth/prelogin:
     post:
       security: []

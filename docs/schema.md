@@ -26,6 +26,7 @@ Source: [`server/migrations/0001_init.sql`](../server/migrations/0001_init.sql).
 | `pending_tokens` | token_hash, kind (`signup`/`login`/`mfa`/`pending`), 🔒/opaque data, attempts, expires_at | Single use with a TTL (5 min; 10 min for `pending`). `pending` holds the not-yet-created account, with the TOTP seed encrypted. |
 | `user_prefs` | user_id, 🔒 blob, updated_at | Encrypted under the user's ASK (favorites, UI preferences) |
 | `server_state` | key, 🔒 value | The OPAQUE `ServerSetup`, encrypted under a server subkey |
+| `selfhost_requests` | name, email, company, team_size, hosting, message, created_at, handled_at | Landing-page "talk to us about self-hosting" requests. Plaintext contact details the visitor typed in, no vault data, no org (so no RLS). The application role can only insert. |
 
 ### Org-scoped (RLS)
 

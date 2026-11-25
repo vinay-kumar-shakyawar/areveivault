@@ -11,6 +11,8 @@ pub struct Config {
     pub bind: String,
     /// Exact origin of the web app, e.g. `https://vault.arevei.com`.
     pub public_origin: String,
+    /// Where the landing page is served; the contact form redirects to pages under it.
+    pub landing_url: String,
     pub server_secret: [u8; 32],
     pub allow_signup: bool,
     pub trust_proxy: bool,
@@ -29,11 +31,17 @@ impl Config {
         let flag = |k: &str| matches!(get(k, "false").to_ascii_lowercase().as_str(), "1" | "true" | "yes");
         let secret = std::env::var("SERVER_SECRET_KEY")
             .context("SERVER_SECRET_KEY is required (32 random bytes as hex or base64, or a random string of 32+ characters)")?;
+        let public_origin = normalize_origin(&get("PUBLIC_ORIGIN", "https://vault.arevei.com"));
+        let landing_url = match get("LANDING_URL", "").trim().trim_end_matches('/') {
+            "" => format!("{public_origin}/welcome"),
+            u => u.to_string(),
+        };
         Ok(Config {
             database_url: std::env::var("DATABASE_URL").context("DATABASE_URL is required")?,
             redis_url: get("REDIS_URL", "redis://127.0.0.1:6379"),
             bind: get("BIND_ADDR", "0.0.0.0:8080"),
-            public_origin: normalize_origin(&get("PUBLIC_ORIGIN", "https://vault.arevei.com")),
+            public_origin,
+            landing_url,
             server_secret: parse_secret(&secret)?,
             allow_signup: flag("ALLOW_SIGNUP"),
             trust_proxy: flag("TRUST_PROXY"),

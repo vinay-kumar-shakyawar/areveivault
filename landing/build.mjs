@@ -1,10 +1,10 @@
 // Builds the static landing page into landing/dist.
 //   node landing/build.mjs            build
 //   node landing/build.mjs --serve    build, then serve dist on http://127.0.0.1:4173
-// Env: APP_URL (default https://vault.arevei.com; "/" for same-origin links), REPO_URL (the public
-// source repository), SELF_HOST_GUIDE_URL (default: docs/setup-guide.md in that repo), ASSET_BASE
-// (default "": relative assets; e.g. "/welcome/" when the page is served from a subfolder of the
-// web app's origin).
+// Env: APP_URL (default https://vault.arevei.com; "/" for same-origin links; the self-hosting
+// request form posts to APP_URL/api/v1/contact/self-host), EXTENSION_URL (the browser-store listing;
+// the "Add to Chrome" buttons are left out while it is unset), ASSET_BASE (default "": relative
+// assets; e.g. "/welcome/" when the page is served from a subfolder of the web app's origin).
 
 import { copyFileSync, createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -16,20 +16,24 @@ const root = join(here, "..");
 const out = join(here, "dist");
 
 const APP_URL = (process.env.APP_URL || "https://vault.arevei.com").replace(/\/$/, "");
-const REPO_URL = (process.env.REPO_URL || "https://github.com/vinay-kumar-shakyawar/areveivault").replace(/(\.git)?\/?$/, "");
-const SELF_HOST_GUIDE_URL = process.env.SELF_HOST_GUIDE_URL || `${REPO_URL}/blob/main/docs/setup-guide.md`;
+const EXTENSION_URL = (process.env.EXTENSION_URL || "").trim();
+if (EXTENSION_URL && !/^https:\/\/[^\s"<>]+$/.test(EXTENSION_URL)) throw new Error("EXTENSION_URL must be an https:// URL");
 const ASSET_BASE = process.env.ASSET_BASE || "";
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(join(out, "fonts"), { recursive: true });
 
-const html = readFileSync(join(here, "index.html"), "utf8")
-  .replaceAll("{{APP_URL}}", APP_URL)
-  .replaceAll("{{SELF_HOST_GUIDE_URL}}", SELF_HOST_GUIDE_URL)
-  .replaceAll("{{REPO_URL}}", REPO_URL)
-  .replace(/href="(favicon\.svg|tokens\.css|styles\.css|fonts\/[^"]+)"/g, (_, f) => `href="${ASSET_BASE}${f}"`);
-if (html.includes("{{")) throw new Error("unreplaced placeholder in index.html");
-writeFileSync(join(out, "index.html"), html);
+// thanks.html and request-failed.html are where the API sends the visitor after the form post.
+for (const page of ["index.html", "thanks.html", "request-failed.html"]) {
+  const html = readFileSync(join(here, page), "utf8")
+    // Browsers can't install an extension from a page; the button opens the store listing.
+    .replace(/<!--ext-->([\s\S]*?)<!--\/ext-->/g, EXTENSION_URL ? "$1" : "")
+    .replaceAll("{{APP_URL}}", APP_URL)
+    .replaceAll("{{EXTENSION_URL}}", EXTENSION_URL)
+    .replace(/href="(favicon\.svg|tokens\.css|styles\.css|fonts\/[^"]+)"/g, (_, f) => `href="${ASSET_BASE}${f}"`);
+  if (html.includes("{{")) throw new Error(`unreplaced placeholder in ${page}`);
+  writeFileSync(join(out, page), html);
+}
 copyFileSync(join(here, "styles.css"), join(out, "styles.css"));
 copyFileSync(join(root, "packages/ui/src/tokens.css"), join(out, "tokens.css"));
 
@@ -57,9 +61,11 @@ writeFileSync(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8e8e8"/><stop offset=".5" stop-color="#a8a9ad"/><stop offset="1" stop-color="#d4d4d4"/></linearGradient></defs><rect width="32" height="32" rx="7" fill="#0a0a0a"/><path d="M16 4.5l9.5 3.6v7.2c0 5.9-4 10.2-9.5 12.3-5.5-2.1-9.5-6.4-9.5-12.3V8.1z" fill="none" stroke="url(#g)" stroke-width="1.8" stroke-linejoin="round"/><circle cx="16" cy="14" r="2.6" fill="url(#g)"/><path d="M14.8 15.8h2.4l.8 5h-4z" fill="url(#g)"/></svg>`,
 );
 
-// The page needs no JavaScript at all, so it can ship with the strictest policy.
+// The page needs no JavaScript at all, so it can ship with the strictest policy. The only form
+// posts to the vault API, which answers with a redirect back to this site.
+const formAction = /^https?:\/\//.test(APP_URL) ? `'self' ${new URL(APP_URL).origin}` : "'self'";
 const csp =
-  "default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests";
+  `default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action ${formAction}; frame-ancestors 'none'; upgrade-insecure-requests`;
 writeFileSync(
   join(out, "_headers"),
   `/*\n  Content-Security-Policy: ${csp}\n  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n`,

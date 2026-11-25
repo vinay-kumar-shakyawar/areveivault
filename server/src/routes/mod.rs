@@ -2,6 +2,7 @@ pub mod account;
 pub mod attachments;
 pub mod audit_log;
 pub mod auth;
+pub mod contact;
 pub mod events;
 pub mod items;
 pub mod org;
@@ -92,6 +93,11 @@ pub fn router(state: AppState) -> Router {
         .nest("/api/v1", api)
         .route("/healthz", get(|| async { "ok" }))
         .layer(middleware::from_fn_with_state(state.clone(), csrf))
+        // Public landing-page form: a plain HTML post, so it sits outside the CSRF layer (see contact.rs).
+        .route(
+            "/api/v1/contact/self-host",
+            post(contact::self_host).layer(DefaultBodyLimit::max(contact::FORM_LIMIT)),
+        )
         .layer(DefaultBodyLimit::max(JSON_LIMIT))
         .layer(SetResponseHeaderLayer::overriding(CACHE_CONTROL, HeaderValue::from_static("no-store")))
         .layer(SetResponseHeaderLayer::overriding(X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
