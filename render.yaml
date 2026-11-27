@@ -35,7 +35,7 @@ services:
       - key: SMTP_HOST
         value: smtp.resend.com
       - key: SMTP_PORT
-        value: "465"
+        value: "2587" # Render's free plan blocks outbound 25, 465 and 587; Resend also listens on 2587 (STARTTLS)
       - key: SMTP_USER
         value: resend
       - key: SMTP_PASS

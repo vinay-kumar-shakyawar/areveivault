@@ -52,6 +52,7 @@
       <symbol id="i-laptop" viewBox="0 0 24 24"><path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
       <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     </defs>
   </svg>
@@ -67,6 +68,7 @@
       <nav aria-label="Primary" class="nav-links">
         <a href="#features">Features</a>
         <a href="#security">Security</a>
+        <a href="#pricing">Pricing</a>
         <a href="#self-host">Self-host</a>
         <a href="#faq">FAQ</a>
       </nav>
@@ -131,6 +133,19 @@
             </div>
           </div>
         </figure>
+      </div>
+    </section>
+
+    <!-- Launch film -->
+    <section class="section" id="film" aria-labelledby="film-h">
+      <div class="wrap film">
+        <h2 id="film-h" class="center">See Arevei Vault in 47 seconds.</h2>
+        <p class="section-lede">From keys scattered across five places to one vault only you can open.</p>
+        <!-- preload="none": nothing is requested from the video host until the visitor presses play. -->
+        <video class="film-player" controls preload="none" playsinline crossorigin="anonymous" poster="launch-film-poster.jpg" width="1280" height="720" aria-label="Arevei Vault launch film">
+          <source src="https://res.cloudinary.com/djispqr5k/video/upload/v1795767373/Arevei_Vault_Launch_Film_Final_fnav1l.mp4" type="video/mp4">
+          <a href="https://res.cloudinary.com/djispqr5k/video/upload/v1795767373/Arevei_Vault_Launch_Film_Final_fnav1l.mp4">Watch the Arevei Vault launch film</a>
+        </video>
       </div>
     </section>
 
@@ -259,6 +274,54 @@
       </div>
     </section>
 
+    <!-- Pricing -->
+    <section class="section section-dark" id="pricing" aria-labelledby="pricing-h">
+      <div class="wrap">
+        <div class="pricing-head">
+          <p class="eyebrow">Pricing</p>
+          <h2 id="pricing-h">Free for our first 50 founders. For life.</h2>
+          <p class="section-lede">We're opening Arevei Vault to 50 founders who'll use it on the accounts that matter and tell us what's missing. You get the full vault free, forever. No card, no trial clock.</p>
+          <p class="spots"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>Only 50 founding spots</p>
+        </div>
+        <div class="plans">
+          <article class="plan plan-featured" aria-labelledby="plan-founding-h">
+            <h3 id="plan-founding-h">Founding 50</h3>
+            <p class="plan-price">Free for life</p>
+            <p class="plan-tag">For the first 50 founders who sign up.</p>
+            <ul class="plan-list">
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Unlimited projects and items</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Logins, 2FA codes, recovery codes, API keys and SSH keys</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Browser extension with phishing-safe autofill</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Import from Chrome, Bitwarden, 1Password and LastPass</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Security check-up and breach check</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Zero-knowledge encryption on Arevei-hosted servers</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Share a project with up to 5 people when you hire</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Founding member badge and a direct line to the team</li>
+            </ul>
+            <a class="btn btn-primary" href="{{APP_URL}}/signup">Claim a founding spot <svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <p class="plan-note">Free for as long as your account is active. No card required.</p>
+          </article>
+          <article class="plan" aria-labelledby="plan-selfhost-h">
+            <h3 id="plan-selfhost-h">Self-hosted Arevei Vault</h3>
+            <p class="plan-price">Custom quote</p>
+            <p class="plan-tag">Your own private Arevei Vault, on your own domain. We set it up and look after it.</p>
+            <ul class="plan-list">
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Everything in Founding 50</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Dedicated instance on your infrastructure or a server we manage</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Runs on your domain (for example vault.yourco.com)</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Browser extension connects to your server</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Updates, backups and monitoring handled by Arevei</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Still zero-knowledge: we run it, we can't read it</li>
+              <li><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Onboarding call and team setup</li>
+            </ul>
+            <a class="btn btn-ghost" href="#self-host">Request a self-hosted setup</a>
+            <p class="plan-note">Most setups are live within 5 working days.</p>
+          </article>
+        </div>
+        <p class="pricing-after"><strong>After 50:</strong> Once the founding spots are gone, new accounts join the waitlist. Founding members keep free access for life.</p>
+      </div>
+    </section>
+
     <!-- Getting started -->
     <section class="section" aria-labelledby="start-h">
       <div class="wrap">
@@ -365,6 +428,22 @@
             <summary>Can I get my data out?</summary>
             <p>Yes. Export an encrypted backup any time, or a plain CSV after re-entering your master password.</p>
           </details>
+          <details>
+            <summary>Is "free for life" really free for life?</summary>
+            <p>Yes. The first 50 founders keep the hosted vault free for as long as the account is active. If we add paid plans later, founding members are not moved onto them.</p>
+          </details>
+          <details>
+            <summary>What happens when the 50 spots are gone?</summary>
+            <p>New signups go to a waitlist. Your data and access don't change.</p>
+          </details>
+          <details>
+            <summary>Why charge for self-hosting?</summary>
+            <p>A self-hosted vault is a dedicated server we set up, update, back up and monitor for you. You're paying for that work, not for the software.</p>
+          </details>
+          <details>
+            <summary>Can I move from hosted to self-hosted later?</summary>
+            <p>Yes. Export an encrypted backup and we'll import it into your own instance.</p>
+          </details>
         </div>
       </div>
     </section>
@@ -395,6 +474,7 @@
       </div>
       <nav aria-label="Footer" class="footer-links">
         <a href="#security">Security</a>
+        <a href="#pricing">Pricing</a>
         <a href="#self-host">Self-hosting</a>
         <a href="#features">Browser extension</a>
         <a href="#faq">FAQ</a>

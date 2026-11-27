@@ -30,11 +30,13 @@ for (const page of ["index.html", "thanks.html", "request-failed.html"]) {
     .replace(/<!--ext-->([\s\S]*?)<!--\/ext-->/g, EXTENSION_URL ? "$1" : "")
     .replaceAll("{{APP_URL}}", APP_URL)
     .replaceAll("{{EXTENSION_URL}}", EXTENSION_URL)
-    .replace(/href="(favicon\.svg|tokens\.css|styles\.css|fonts\/[^"]+)"/g, (_, f) => `href="${ASSET_BASE}${f}"`);
+    .replace(/href="(favicon\.svg|tokens\.css|styles\.css|fonts\/[^"]+)"/g, (_, f) => `href="${ASSET_BASE}${f}"`)
+    .replace(/poster="(launch-film-poster\.jpg)"/g, (_, f) => `poster="${ASSET_BASE}${f}"`);
   if (html.includes("{{")) throw new Error(`unreplaced placeholder in ${page}`);
   writeFileSync(join(out, page), html);
 }
 copyFileSync(join(here, "styles.css"), join(out, "styles.css"));
+copyFileSync(join(here, "launch-film-poster.jpg"), join(out, "launch-film-poster.jpg"));
 copyFileSync(join(root, "packages/ui/src/tokens.css"), join(out, "tokens.css"));
 
 // Self-hosted fonts from the web app's @fontsource packages (no Google Fonts / CDNs).
@@ -62,10 +64,12 @@ writeFileSync(
 );
 
 // The page needs no JavaScript at all, so it can ship with the strictest policy. The only form
-// posts to the vault API, which answers with a redirect back to this site.
+// posts to the vault API, which answers with a redirect back to this site. media-src allows the
+// launch film, the one off-site resource; it is fetched only when the visitor presses play.
+// Keep this policy in step with landing/vercel.json and the /welcome rule in web/vercel.json.
 const formAction = /^https?:\/\//.test(APP_URL) ? `'self' ${new URL(APP_URL).origin}` : "'self'";
 const csp =
-  `default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action ${formAction}; frame-ancestors 'none'; upgrade-insecure-requests`;
+  `default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:; media-src https://res.cloudinary.com; base-uri 'none'; form-action ${formAction}; frame-ancestors 'none'; upgrade-insecure-requests`;
 writeFileSync(
   join(out, "_headers"),
   `/*\n  Content-Security-Policy: ${csp}\n  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n`,
@@ -74,7 +78,7 @@ writeFileSync(
 console.log(`built landing → ${out} (APP_URL=${APP_URL})`);
 
 if (process.argv.includes("--serve")) {
-  const types = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+  const types = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".svg": "image/svg+xml", ".jpg": "image/jpeg", ".woff2": "font/woff2" };
   createServer((req, res) => {
     const path = normalize(decodeURIComponent(new URL(req.url, "http://x").pathname)).replace(/^([/\\])+/, "");
     let file = join(out, path || "index.html");

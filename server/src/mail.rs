@@ -38,8 +38,9 @@ pub async fn send(smtp: &Smtp, email: Email<'_>) -> anyhow::Result<()> {
     }
     let msg = msg.body(email.body)?;
 
-    // 465 is TLS from the first byte; every other port upgrades with STARTTLS. Never plaintext.
-    let builder = if smtp.port == 465 {
+    // 465 (and Resend's alternative 2465) is TLS from the first byte; every other port upgrades
+    // with STARTTLS. Never plaintext.
+    let builder = if matches!(smtp.port, 465 | 2465) {
         AsyncSmtpTransport::<Tokio1Executor>::relay(&smtp.host)?
     } else {
         AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(&smtp.host)?
