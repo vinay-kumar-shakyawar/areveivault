@@ -377,3 +377,28 @@ a {
   padding-top: 12px;
   border-top: 1px solid var(--border);
 }
+
+/* ---- popup footer (auto-lock) ---- */
+.pop-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+.pop-foot label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.pop-foot select {
+  height: 28px;
+  padding: 0 6px;
+  font-size: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}

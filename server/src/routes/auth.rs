@@ -353,7 +353,7 @@ pub async fn confirm_totp(State(st): State<AppState>, meta: ReqMeta, Body(r): Bo
     tx.commit().await?;
     st.publish(org_id, rev);
 
-    finish_login(&st, user_id, &r.device_name, &meta, false).await
+    finish_login(&st, user_id, &r.device_name, &meta, false, false).await
 }
 
 // ------------------------------------------------------------------ login
@@ -439,6 +439,9 @@ pub struct MfaVerifyReq {
     code: String,
     #[serde(default)]
     device_name: String,
+    /// Set by the browser extension: the session stays signed in until sign-out or device removal.
+    #[serde(default)]
+    persistent: bool,
 }
 
 pub async fn mfa_verify(State(st): State<AppState>, meta: ReqMeta, Body(r): Body<MfaVerifyReq>) -> ApiResult<Response> {
@@ -475,7 +478,7 @@ pub async fn mfa_verify(State(st): State<AppState>, meta: ReqMeta, Body(r): Body
         Notice::NewDeviceLogin,
         &format!("new sign-in from device \"{}\" ({})", r.device_name.chars().take(100).collect::<String>(), meta.ip.as_deref().unwrap_or("unknown IP")),
     );
-    finish_login(&st, user_id, &r.device_name, &meta, true).await
+    finish_login(&st, user_id, &r.device_name, &meta, true, r.persistent).await
 }
 
 async fn audit_auth_event(st: &AppState, user_id: Uuid, event: &str, meta: &ReqMeta) -> ApiResult<()> {
@@ -489,8 +492,8 @@ async fn audit_auth_event(st: &AppState, user_id: Uuid, event: &str, meta: &ReqM
     Ok(())
 }
 
-async fn finish_login(st: &AppState, user_id: Uuid, device_name: &str, meta: &ReqMeta, log: bool) -> ApiResult<Response> {
-    let (token, _) = session::create_session(st, user_id, device_name, meta.ip.as_deref()).await?;
+async fn finish_login(st: &AppState, user_id: Uuid, device_name: &str, meta: &ReqMeta, log: bool, persistent: bool) -> ApiResult<Response> {
+    let (token, _) = session::create_session(st, user_id, device_name, meta.ip.as_deref(), persistent).await?;
     let user = session::load_session(st, &token).await?;
     if log {
         let mut tx = st.org_tx(user.org_id).await?;

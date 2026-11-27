@@ -59,9 +59,10 @@ pub async fn purge_trash(state: &AppState) -> ApiResult<usize> {
 
 pub async fn cleanup_sessions(state: &AppState) -> ApiResult<()> {
     let now = state.now();
-    sqlx::query("DELETE FROM sessions WHERE last_seen_at < $1 OR created_at < $2")
+    sqlx::query("DELETE FROM sessions WHERE (NOT persistent AND (last_seen_at < $1 OR created_at < $2)) OR (persistent AND last_seen_at < $3)")
         .bind(now - state.cfg.session_idle_secs)
         .bind(now - state.cfg.session_absolute_secs)
+        .bind(now - crate::auth::PERSISTENT_IDLE_SECS)
         .execute(&state.db)
         .await?;
     sqlx::query("DELETE FROM pending_tokens WHERE expires_at < $1").bind(now).execute(&state.db).await?;

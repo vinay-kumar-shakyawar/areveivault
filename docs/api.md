@@ -22,7 +22,7 @@ The source of truth for `/server`, `/web`, and `/extension`. The machine-readabl
 | `POST /auth/mfa/totp/confirm` | `{pending_token, code, device_name}` | Sets the session cookie. Returns `Session` and `session_token`. |
 | `POST /auth/login/start` | `{email, credential_request}` | `{credential_response, login_token}` |
 | `POST /auth/login/finish` | `{login_token, credential_finalization}` | `{mfa_token, methods:["totp"]}`, or `401` |
-| `POST /auth/mfa/verify` | `{mfa_token, code, device_name}` | Sets the session cookie. Returns `Session` and `session_token`. |
+| `POST /auth/mfa/verify` | `{mfa_token, code, device_name, persistent?}` | Sets the session cookie. Returns `Session` and `session_token`. `persistent: true` (browser extension) gives a session with no idle or absolute timeout. |
 | `POST /auth/logout` | — | `204` |
 | `GET /auth/session` | — | `Session`, or `401` |
 

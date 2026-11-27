@@ -64,3 +64,32 @@ export async function loadSecretKey(email: string): Promise<string | null> {
 export async function forgetSecretKey(): Promise<void> {
   await idb("readwrite", (s) => s.delete("secret-key"));
 }
+
+// ---- unlocked session kept across browser restarts ("Auto-lock: Never") ----
+//
+// The exported engine session is encrypted with the same non-extractable key, so the
+// bytes on disk can't be decrypted outside this browser profile. Anyone who can use
+// the profile can use the vault: that is the tradeoff the user accepts with "Never".
+
+const SESSION_AAD = new TextEncoder().encode("arevei-engine-session-v1");
+
+export async function saveUnlockedSession(blob: string): Promise<void> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: SESSION_AAD }, await wrappingKey(), new TextEncoder().encode(blob));
+  await idb("readwrite", (s) => s.put({ iv, ct }, "engine-session"));
+}
+
+export async function loadUnlockedSession(): Promise<string | null> {
+  const rec = await idb<{ iv: Uint8Array; ct: ArrayBuffer } | undefined>("readonly", (s) => s.get("engine-session"));
+  if (!rec) return null;
+  try {
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: rec.iv, additionalData: SESSION_AAD }, await wrappingKey(), rec.ct);
+    return new TextDecoder().decode(pt);
+  } catch {
+    return null;
+  }
+}
+
+export async function forgetUnlockedSession(): Promise<void> {
+  await idb("readwrite", (s) => s.delete("engine-session"));
+}

@@ -2,8 +2,9 @@
  * Persistent extension state. `chrome.storage.local` holds ONLY ciphertext and
  * non-key metadata (sync cache, encrypted keyset, session token, settings).
  * `chrome.storage.session` (memory-only, trusted contexts) holds the unlocked
- * engine session so a service-worker restart does not lock the vault, while a
- * browser restart does.
+ * engine session so a service-worker restart does not lock the vault. With
+ * "Auto-lock: Never" an encrypted copy is also kept in IndexedDB (secretStore.ts)
+ * so a browser restart does not lock it either.
  */
 
 export interface SyncCache {
@@ -26,8 +27,11 @@ export interface Account {
 }
 
 export interface Settings {
+  /** Minutes of inactivity before the vault locks. 0 = never: it stays unlocked, also across browser restarts. */
   autolockMinutes: number;
 }
+
+export const AUTOLOCK_CHOICES = [0, 5, 15, 60];
 
 const local = chrome.storage.local;
 const session = chrome.storage.session;
@@ -38,6 +42,15 @@ export async function getAccount(): Promise<Account | null> {
   return ((await local.get("account")).account as Account | undefined) ?? null;
 }
 export const setAccount = (a: Account | null) => (a ? local.set({ account: a }) : local.remove("account"));
+
+/**
+ * Email of an account whose session the server ended (not a sign-out by the user). Its
+ * Secret Key stays on the device, so signing back in doesn't ask for the Emergency Kit.
+ */
+export async function getRememberedEmail(): Promise<string | null> {
+  return ((await local.get("rememberedEmail")).rememberedEmail as string | undefined) ?? null;
+}
+export const setRememberedEmail = (email: string | null) => (email ? local.set({ rememberedEmail: email }) : local.remove("rememberedEmail"));
 
 export async function getCache(): Promise<SyncCache> {
   return ((await local.get("cache")).cache as SyncCache | undefined) ?? emptyCache();
@@ -61,7 +74,7 @@ export async function getServer(): Promise<string | null> {
 export const setServer = (origin: string | null) => (origin ? local.set({ server: origin }) : local.remove("server"));
 
 export async function getSettings(): Promise<Settings> {
-  return { autolockMinutes: 5, ...(((await local.get("settings")).settings as Partial<Settings>) ?? {}) };
+  return { autolockMinutes: 0, ...(((await local.get("settings")).settings as Partial<Settings>) ?? {}) };
 }
 export const setSettings = (s: Settings) => local.set({ settings: s });
 

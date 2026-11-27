@@ -12,6 +12,9 @@ interface State {
   mfaPending: boolean;
   vaultOrigin: string;
   defaultOrigin: string;
+  /** Set when the server ended the session: the Secret Key is still on this device. */
+  rememberedEmail: string | null;
+  settings: { autolockMinutes: number };
 }
 
 interface Summary {
@@ -134,10 +137,12 @@ function ServerSetting({ state, onChanged }: { state: State; onChanged: () => vo
 function SignIn({ state, onDone, onServerChanged }: { state: State; onDone: () => void; onServerChanged: () => void }) {
   const mfaPending = state.mfaPending;
   const [step, setStep] = useState<"creds" | "mfa">(mfaPending ? "mfa" : "creds");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(state.rememberedEmail ?? "");
   const [password, setPassword] = useState("");
   const [secretKey, setSecretKey] = useState("");
   const [code, setCode] = useState("");
+  // Signing back in on a device that still holds the Secret Key: don't ask for it again.
+  const hasKey = !!state.rememberedEmail && email.trim().toLowerCase() === state.rememberedEmail;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,7 +150,7 @@ function SignIn({ state, onDone, onServerChanged }: { state: State; onDone: () =
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const r = step === "creds" ? await rpc("signin", { email, password, secretKey }) : await rpc("mfa", { code });
+    const r = step === "creds" ? await rpc("signin", { email, password, secretKey: hasKey ? "" : secretKey }) : await rpc("mfa", { code });
     setBusy(false);
     setPassword("");
     if (r?.error) return setError(r.error);
@@ -166,11 +171,15 @@ function SignIn({ state, onDone, onServerChanged }: { state: State; onDone: () =
             Master password
             <input className="input" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </label>
-          <label>
-            Secret Key
-            <input className="input mono" placeholder="AV1-XXXXXX-…" required value={secretKey} onChange={(e) => setSecretKey(e.target.value)} spellCheck={false} />
-            <span className="hint">From your Emergency Kit. Asked once per browser.</span>
-          </label>
+          {hasKey ? (
+            <p className="muted hint">Your session on this browser ended. Your Secret Key is still saved here.</p>
+          ) : (
+            <label>
+              Secret Key
+              <input className="input mono" placeholder="AV1-XXXXXX-…" required value={secretKey} onChange={(e) => setSecretKey(e.target.value)} spellCheck={false} />
+              <span className="hint">From your Emergency Kit. Asked once per browser.</span>
+            </label>
+          )}
         </>
       ) : (
         <label>
@@ -313,6 +322,38 @@ function Row({ it, onCopied }: { it: Summary; onCopied: (what: string) => void }
   );
 }
 
+const AUTOLOCK_LABELS: [number, string][] = [
+  [0, "Never"],
+  [5, "After 5 minutes"],
+  [15, "After 15 minutes"],
+  [60, "After 1 hour"],
+];
+
+function AutoLockSetting({ state, onChanged }: { state: State; onChanged: () => void }) {
+  const value = state.settings.autolockMinutes;
+  return (
+    <footer className="pop-foot">
+      <label>
+        Auto-lock
+        <select
+          aria-label="Auto-lock"
+          value={String(value)}
+          onChange={(e) => void rpc("settings", { autolockMinutes: Number(e.target.value) }).then(onChanged)}
+        >
+          {AUTOLOCK_LABELS.map(([m, label]) => (
+            <option key={m} value={m}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span className="muted hint">
+        {value === 0 ? "Stays unlocked on this browser until you lock it or sign out." : "Also locks when the screen locks or the browser closes."}
+      </span>
+    </footer>
+  );
+}
+
 function Vault({ onLocked }: { onLocked: () => void }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Summary[]>([]);
@@ -411,6 +452,7 @@ function App() {
     <>
       <Header state={state} onLock={() => void rpc("lock").then(refresh)} onSignOut={() => void rpc("signout").then(refresh)} />
       <Vault onLocked={refresh} />
+      <AutoLockSetting state={state} onChanged={refresh} />
     </>
   );
 }

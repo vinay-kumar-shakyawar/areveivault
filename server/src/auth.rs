@@ -145,20 +145,22 @@ impl FromRequestParts<AppState> for AuthUser {
 pub async fn load_session(state: &AppState, token: &str) -> ApiResult<AuthUser> {
     let hash = hash_token(token);
     let now = state.now();
-    let row: Option<(Uuid, Uuid, i64, i64, Uuid, String, String)> = sqlx::query_as(
-        "SELECT s.user_id, s.device_id, s.created_at, s.last_seen_at, u.org_id, u.email, u.status
+    let row: Option<(Uuid, Uuid, i64, i64, bool, Uuid, String, String)> = sqlx::query_as(
+        "SELECT s.user_id, s.device_id, s.created_at, s.last_seen_at, s.persistent, u.org_id, u.email, u.status
          FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = $1",
     )
     .bind(&hash)
     .fetch_optional(&state.db)
     .await?;
-    let Some((user_id, device_id, created_at, last_seen, org_id, email, user_status)) = row else {
+    let Some((user_id, device_id, created_at, last_seen, persistent, org_id, email, user_status)) = row else {
         return Err(AppError::unauthorized());
     };
-    if user_status != "active"
-        || now - last_seen > state.cfg.session_idle_secs
-        || now - created_at > state.cfg.session_absolute_secs
-    {
+    let expired = if persistent {
+        now - last_seen > PERSISTENT_IDLE_SECS
+    } else {
+        now - last_seen > state.cfg.session_idle_secs || now - created_at > state.cfg.session_absolute_secs
+    };
+    if user_status != "active" || expired {
         sqlx::query("DELETE FROM sessions WHERE token_hash = $1").bind(&hash).execute(&state.db).await?;
         return Err(AppError::unauthorized());
     }
@@ -178,8 +180,12 @@ pub async fn load_session(state: &AppState, token: &str) -> ApiResult<AuthUser> 
     Ok(AuthUser { user_id, org_id, email, role, status, device_id, token_hash: hash })
 }
 
+/// A persistent session (the browser extension) has no idle or absolute timeout. It ends on
+/// sign-out, when the device is removed or the user is disabled, or after a year without use.
+pub const PERSISTENT_IDLE_SECS: i64 = 365 * 24 * 3600;
+
 /// Creates a device + session. Returns the raw token (sent once to the client).
-pub async fn create_session(state: &AppState, user_id: Uuid, device_name: &str, ip: Option<&str>) -> ApiResult<(String, Uuid)> {
+pub async fn create_session(state: &AppState, user_id: Uuid, device_name: &str, ip: Option<&str>, persistent: bool) -> ApiResult<(String, Uuid)> {
     let now = state.now();
     let device_id = Uuid::new_v4();
     let name: String = device_name.trim().chars().take(100).collect();
@@ -193,11 +199,12 @@ pub async fn create_session(state: &AppState, user_id: Uuid, device_name: &str, 
         .execute(&state.db)
         .await?;
     let token = new_token();
-    sqlx::query("INSERT INTO sessions (token_hash, user_id, device_id, created_at, last_seen_at) VALUES ($1,$2,$3,$4,$4)")
+    sqlx::query("INSERT INTO sessions (token_hash, user_id, device_id, created_at, last_seen_at, persistent) VALUES ($1,$2,$3,$4,$4,$5)")
         .bind(hash_token(&token))
         .bind(user_id)
         .bind(device_id)
         .bind(now)
+        .bind(persistent)
         .execute(&state.db)
         .await?;
     Ok((token, device_id))

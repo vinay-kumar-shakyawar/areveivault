@@ -129,7 +129,8 @@ export class Api {
     this.request<{ credential_response: string; login_token: string }>("POST", "/auth/login/start", b);
   loginFinish = (b: { login_token: string; credential_finalization: string }) =>
     this.request<{ mfa_token: string; methods: string[] }>("POST", "/auth/login/finish", b);
-  verifyMfa = (b: { mfa_token: string; code: string; device_name: string }) =>
+  /** `persistent` (browser extension): the session has no idle or absolute timeout. */
+  verifyMfa = (b: { mfa_token: string; code: string; device_name: string; persistent?: boolean }) =>
     this.request<Session & { session_token: string }>("POST", "/auth/mfa/verify", b);
   logout = () => this.request<void>("POST", "/auth/logout");
   session = () => this.request<Session>("GET", "/auth/session");

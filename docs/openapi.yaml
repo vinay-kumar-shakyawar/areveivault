@@ -257,7 +257,7 @@ paths:
     post:
       security: []
       parameters: [{ $ref: "#/components/parameters/CsrfHeader" }]
-      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [mfa_token, code], properties: { mfa_token: { type: string }, code: { type: string }, device_name: { type: string } } } } } }
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [mfa_token, code], properties: { mfa_token: { type: string }, code: { type: string }, device_name: { type: string }, persistent: { type: boolean, description: "Browser extension: no idle or absolute session timeout" } } } } } }
       responses:
         "200": { description: Session cookie set, content: { application/json: { schema: { $ref: "#/components/schemas/Session" } } } }
         "401": { $ref: "#/components/responses/Error" }

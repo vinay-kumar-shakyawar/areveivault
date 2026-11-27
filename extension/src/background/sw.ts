@@ -18,7 +18,7 @@ import {
 import { PendingStore } from "../shared/pending";
 import { decideFill, isOwnExtensionPage, resolveFrame, type MatchResult } from "../shared/policy";
 import { getEngine } from "./engine";
-import { forgetSecretKey, loadSecretKey, saveSecretKey } from "./secretStore";
+import { forgetSecretKey, forgetUnlockedSession, loadSecretKey, loadUnlockedSession, saveSecretKey, saveUnlockedSession } from "./secretStore";
 import * as store from "./store";
 
 // Referenced directly (not via config.ts) so esbuild folds it to a literal and the
@@ -129,10 +129,25 @@ async function isUnlocked(): Promise<boolean> {
   // Service worker restarted: restore the unlocked session from memory-only storage.
   if (!restoring) {
     restoring = (async () => {
-      const blob = await store.getSessionBlob();
+      let blob = await store.getSessionBlob();
+      let fromDisk = false;
+      if (!blob && (await staysUnlocked())) {
+        // Browser restarted with "Auto-lock: Never": restore the encrypted copy kept on this device.
+        blob = await loadUnlockedSession();
+        fromDisk = !!blob;
+      }
       if (!blob) return false;
       try {
         await e.call("import_session", { session: blob });
+      } catch {
+        await store.setSessionBlob(null);
+        await forgetUnlockedSession();
+        return false;
+      }
+      try {
+        if (fromDisk) await store.setSessionBlob(blob);
+        // Unlocked before "Never" existed (extension update): start keeping the copy now.
+        else if (await staysUnlocked()) await saveUnlockedSession(blob);
         await applyCache();
         return true;
       } catch {
@@ -144,10 +159,17 @@ async function isUnlocked(): Promise<boolean> {
   return restoring;
 }
 
+/** "Auto-lock: Never": the vault stays unlocked until the user locks it or signs out. */
+async function staysUnlocked(): Promise<boolean> {
+  return (await store.getSettings()).autolockMinutes === 0;
+}
+
 async function persistSession(): Promise<void> {
   const e = await engine();
   const { session } = await e.call<{ session: string }>("export_session");
   await store.setSessionBlob(session);
+  if (await staysUnlocked()) await saveUnlockedSession(session);
+  else await forgetUnlockedSession();
 }
 
 /** Feed the full ciphertext cache to the engine (the engine expects full lists). */
@@ -182,6 +204,7 @@ async function syncNow(full = false): Promise<void> {
   try {
     data = await api.sync(full ? 0 : c.revision);
   } catch (e) {
+    // The server ended the session (device removed, account disabled, or a year unused).
     if (e instanceof ApiError && e.status === 401) await signOut(false);
     return;
   }
@@ -220,7 +243,8 @@ async function storeRow(row: any): Promise<void> {
 
 async function touch(): Promise<void> {
   const s = await store.getSettings();
-  await chrome.alarms.create("autolock", { delayInMinutes: Math.max(1, s.autolockMinutes) });
+  if (s.autolockMinutes === 0) await chrome.alarms.clear("autolock");
+  else await chrome.alarms.create("autolock", { delayInMinutes: Math.max(1, s.autolockMinutes) });
 }
 
 async function lock(): Promise<void> {
@@ -228,6 +252,7 @@ async function lock(): Promise<void> {
   const e = await engine();
   await e.call("lock");
   await store.setSessionBlob(null);
+  await forgetUnlockedSession();
   menus.clear();
   pending.clear();
   await chrome.storage.session.remove(["menus", "pending"]);
@@ -242,7 +267,13 @@ async function lock(): Promise<void> {
   }
 }
 
+/**
+ * `callServer = false` means the server already ended the session. The Secret Key then
+ * stays on the device (it is useless without the master password), so signing back in
+ * needs only the master password and a two-factor code.
+ */
 async function signOut(callServer = true): Promise<void> {
+  const email = (await store.getAccount())?.email ?? null;
   if (callServer && !__E2E__) {
     try {
       await api.logout();
@@ -254,7 +285,12 @@ async function signOut(callServer = true): Promise<void> {
   memToken = null;
   await store.setAccount(null);
   await store.setCache(store.emptyCache());
-  await forgetSecretKey();
+  if (callServer) {
+    await store.setRememberedEmail(null);
+    await forgetSecretKey();
+  } else {
+    await store.setRememberedEmail(email);
+  }
 }
 
 // ------------------------------------------------------------------ audit
@@ -694,8 +730,10 @@ async function onPageMessage(raw: any, sender: chrome.runtime.MessageSender): Pr
     case "state": {
       const acct = await store.getAccount();
       const unlocked = acct ? await isUnlocked() : false;
+      const remembered = acct ? null : await store.getRememberedEmail();
       return {
         signedIn: !!acct,
+        rememberedEmail: remembered && (await loadSecretKey(remembered)) ? remembered : null,
         unlocked,
         email: acct?.email ?? null,
         hasSecretKey: acct ? !!(await loadSecretKey(acct.email)) : false,
@@ -721,12 +759,16 @@ async function onPageMessage(raw: any, sender: chrome.runtime.MessageSender): Pr
       return { ok: true, vaultOrigin: origin };
     }
     case "signin": {
-      const { email, password, secretKey } = a as { email: string; password: string; secretKey: string };
+      const { email, password } = a as { email: string; password: string };
+      const normalized = String(email ?? "").trim().toLowerCase();
+      // Signing back in after the server ended the session: the Secret Key is still on this device.
+      const remembered = normalized === (await store.getRememberedEmail()) ? await loadSecretKey(normalized) : null;
+      const secretKey = String(a.secretKey ?? "") || remembered || "";
       const v = await e.call<{ valid: boolean }>("validate_secret_key", { secret_key: secretKey });
       if (!v.valid) return { error: "That Secret Key isn't valid. Check your Emergency Kit." };
       try {
         const r = await loginPassword(e, api, email, password, secretKey);
-        loginCtx = { email: email.trim().toLowerCase(), secretKey, mfaToken: r.mfaToken };
+        loginCtx = { email: normalized, secretKey, mfaToken: r.mfaToken };
         return { mfa: r.methods };
       } catch (err) {
         return { error: "Sign-in failed. Check your email, master password and Secret Key." + (err instanceof ApiError && err.status === 429 ? " Too many attempts; wait and retry." : "") };
@@ -735,12 +777,13 @@ async function onPageMessage(raw: any, sender: chrome.runtime.MessageSender): Pr
     case "mfa": {
       if (!loginCtx) return { error: "Start sign-in again." };
       try {
-        const s = await api.verifyMfa({ mfa_token: loginCtx.mfaToken, code: String(a.code ?? ""), device_name: deviceName() });
+        const s = await api.verifyMfa({ mfa_token: loginCtx.mfaToken, code: String(a.code ?? ""), device_name: deviceName(), persistent: true });
         memToken = s.session_token;
         await completeLogin(e, api);
         const keyset = await api.keyset();
         await store.setAccount({ email: loginCtx.email, userId: s.user_id, token: s.session_token, keyset });
         await saveSecretKey(loginCtx.email, loginCtx.secretKey);
+        await store.setRememberedEmail(null);
         loginCtx = null;
         memToken = null;
         await persistSession();
@@ -815,9 +858,13 @@ async function onPageMessage(raw: any, sender: chrome.runtime.MessageSender): Pr
       return { ok: true };
     }
     case "settings": {
-      const s = { autolockMinutes: Math.min(60, Math.max(1, Number(a.autolockMinutes) || 5)) };
-      await store.setSettings(s);
-      await touch();
+      const minutes = Number(a.autolockMinutes);
+      await store.setSettings({ autolockMinutes: store.AUTOLOCK_CHOICES.includes(minutes) ? minutes : 0 });
+      // Writes or removes the copy that survives a browser restart, to match the new choice.
+      if ((await store.getAccount()) && (await isUnlocked())) {
+        await persistSession();
+        await touch();
+      }
       return { ok: true };
     }
     case "importCsv": {
@@ -922,7 +969,8 @@ async function verifyBuild(): Promise<{ status: "verified" | "mismatch" | "unver
 // ------------------------------------------------------------------ alarms, idle, commands, context menus, install
 
 chrome.alarms.onAlarm.addListener((a) => {
-  if (a.name === "autolock") void lock();
+  // An alarm set before the user chose "Never" must not lock the vault.
+  if (a.name === "autolock") void staysUnlocked().then((stay) => (stay ? undefined : lock()));
   if (a.name === "sync") {
     pending.sweep();
     void flushAudit();
@@ -933,7 +981,7 @@ void chrome.alarms.create("sync", { periodInMinutes: SYNC_INTERVAL_MINUTES });
 
 chrome.idle.setDetectionInterval(60);
 chrome.idle.onStateChanged.addListener((state) => {
-  if (state === "locked") void lock();
+  if (state === "locked") void staysUnlocked().then((stay) => (stay ? undefined : lock()));
 });
 
 chrome.commands.onCommand.addListener((command, tab) => {

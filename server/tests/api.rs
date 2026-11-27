@@ -497,3 +497,39 @@ async fn self_host_contact_form() {
     let req = Request::builder().method("POST").uri("/api/v1/auth/logout").body(Body::empty()).unwrap();
     assert_eq!(app.send(req).await.status, StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn extension_session_outlives_browser_session() {
+    let app = spawn().await;
+    let owner = signup(&app, "owner@persist.test", None, true).await;
+
+    // A second sign-in the way the browser extension does it: `persistent: true`.
+    let mut engine = arevei_core::engine::Engine::new();
+    let pre = app.call("POST", "/auth/prelogin", None, Some(json!({"email": owner.email}))).await;
+    e(&mut engine, "derive", json!({"password": PASSWORD, "secret_key": owner.secret_key, "salt": pre.body["salt"], "kdf": pre.body["kdf"]}));
+    let st = e(&mut engine, "opaque_login_start", json!({}));
+    let s = app.call("POST", "/auth/login/start", None, Some(json!({"email": owner.email, "credential_request": st["message"]}))).await;
+    let fin = e(&mut engine, "opaque_login_finish", json!({"response": s.body["credential_response"]}));
+    let f = app.call("POST", "/auth/login/finish", None, Some(json!({"login_token": s.body["login_token"], "credential_finalization": fin["finalization"]}))).await;
+    app.state.advance_clock(30);
+    let code = arevei_core::totp::TotpConfig::new(&owner.totp_secret).unwrap().code_at(app.state.now() as u64).unwrap().code;
+    let m = app
+        .call("POST", "/auth/mfa/verify", None, Some(json!({"mfa_token": f.body["mfa_token"], "code": code, "device_name": "Arevei Vault extension (Chrome)", "persistent": true})))
+        .await;
+    assert_eq!(m.status, StatusCode::OK, "{}", m.body);
+    let ext_token = m.body["session_token"].as_str().unwrap().to_string();
+
+    // Thirty days later the browser session is gone; the extension is still signed in.
+    app.state.advance_clock(30 * 24 * 3600);
+    arevei_server::tasks::cleanup_sessions(&app.state).await.unwrap();
+    let r = app.call("GET", "/auth/session", Some(&owner.token), None).await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED);
+    let r = app.call("GET", "/auth/session", Some(&ext_token), None).await;
+    assert_eq!(r.status, StatusCode::OK, "{}", r.body);
+
+    // Signing out still ends it.
+    let r = app.call("POST", "/auth/logout", Some(&ext_token), None).await;
+    assert_eq!(r.status, StatusCode::NO_CONTENT);
+    let r = app.call("GET", "/auth/session", Some(&ext_token), None).await;
+    assert_eq!(r.status, StatusCode::UNAUTHORIZED);
+}
