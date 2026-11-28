@@ -172,8 +172,12 @@ jobs:
       - name: Sign published bundle hashes (verified by the extension, architecture §12.3)
         run: |
           cp web/dist/bundle-hashes.json bundle-hashes.json
-          (cd extension/dist && zip -qr ../../arevei-vault-extension-chrome.zip chrome)
-          sha256sum arevei-vault-extension-chrome.zip >> SHA256SUMS
+          # manifest.json at the zip root: the layout the Edge Add-ons and Chrome stores require,
+          # and what "Load unpacked" expects after unzipping. The fixed name gives the landing
+          # page's install guide a stable releases/latest/download link.
+          node extension/package.mjs
+          cp extension/dist/arevei-vault-chrome-*.zip arevei-vault-extension.zip
+          sha256sum arevei-vault-extension.zip >> SHA256SUMS
           cosign sign-blob --yes bundle-hashes.json --output-signature bundle-hashes.json.sig --output-certificate bundle-hashes.json.pem
       - uses: softprops/action-gh-release@v2
         with:
@@ -181,5 +185,5 @@ jobs:
             bundle-hashes.json
             bundle-hashes.json.sig
             bundle-hashes.json.pem
-            arevei-vault-extension-chrome.zip
+            arevei-vault-extension.zip
             SHA256SUMS

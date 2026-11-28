@@ -2,14 +2,15 @@
 
 The static marketing page for Arevei Vault, positioned for solo founders. The copy comes from the "Arevei Vault — Landing Page Copy (Solo Founders)" doc.
 
-- No JavaScript, no third-party requests. It ships under `default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:`, plus `form-action` for the one form below.
+- The page itself uses no JavaScript. By default it ships under `default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:`, plus `form-action` for the one form below.
+- Google Tag Manager is opt-in: build with `GTM_ID=GTM-XXXXXXX` and every page loads `gtm-init.js` and the container, and the CSP also admits `www.googletagmanager.com` scripts and Google Analytics requests (no inline script). The standalone Vercel project sets it in `landing/vercel.json`. The build refuses `GTM_ID` for the `/welcome` copy on the vault's origin, so no third-party script ever runs there.
 - Colors come from `packages/ui/src/tokens.css`, the same tokens as the app. Dark by default, and it follows the system light/dark setting.
 - Fonts are self-hosted from the web app's `@fontsource` packages, so run `pnpm install` first.
 
 ```bash
 node landing/build.mjs            # → landing/dist (deploy this folder to any static host)
 node landing/build.mjs --serve    # preview on http://127.0.0.1:4173
-APP_URL=https://vault.arevei.com EXTENSION_URL=https://chromewebstore.google.com/detail/… node landing/build.mjs
+APP_URL=https://vault.arevei.com EDGE_EXTENSION_URL=https://microsoftedge.microsoft.com/addons/detail/… node landing/build.mjs
 ```
 
 ## Self-hosting request form
@@ -23,15 +24,20 @@ SELECT to_timestamp(created_at) AS received, name, email, company, team_size, ho
 FROM selfhost_requests WHERE handled_at IS NULL ORDER BY created_at DESC;
 ```
 
-## "Add to Chrome" button
+## Installing the extension
 
-A web page can't install a browser extension by itself: Chrome removed inline installation in 2018, and every browser now requires the user to confirm on the store listing. The closest thing is a button that opens the listing, where the visitor clicks "Add to Chrome" once. Set `EXTENSION_URL` to the Chrome Web Store listing and the buttons appear; while it's unset they're left out of the build. Publishing the extension is described in [extension/README.md](../extension/README.md).
+A web page can't install a browser extension by itself: every browser requires the user to confirm on a store listing, or to load the files by hand. The page offers both.
+
+- **Store buttons.** Set `EDGE_EXTENSION_URL` to the Edge Add-ons listing for an "Add to Edge" button, and `EXTENSION_URL` to the Chrome Web Store listing for "Add to Chrome". Each button is left out of the build while its variable is unset.
+- **Install from GitHub.** `install-extension.html` is a five-step guide for loading the extension unpacked in Edge, Chrome or Brave. It is always built, and the landing page links to it from the setup steps and the footer. Its download button points at `EXTENSION_ZIP_URL`, which defaults to `arevei-vault-extension.zip` on the latest GitHub release. That link returns 404 until the first `v*` tag has been released.
+
+Publishing the extension is described in [extension/README.md](../extension/README.md).
 
 `dist/_headers` carries the security headers in the Netlify/Cloudflare Pages format. On other hosts, set the same headers yourself.
 
 ## Before launch
 
-- Publish the extension and set `EXTENSION_URL`.
+- Push a `v*` tag so the GitHub release exists before the install guide goes live, then publish to Edge Add-ons and set `EDGE_EXTENSION_URL`.
 - Set `SMTP_PASS` on the API and submit the form once to confirm the notification email arrives.
 - "Create your vault" links to `APP_URL/signup`. That only works for new founders once the hosted instance allows self-serve sign-up (`ALLOW_SIGNUP=true`).
 - Add Privacy and Terms pages and link them in the footer.

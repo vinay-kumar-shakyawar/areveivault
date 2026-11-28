@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Install the browser extension — Arevei Vault</title>
+  <meta name="description" content="Install the Arevei Vault extension in Microsoft Edge, Chrome or Brave from the GitHub download, in five steps.">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0a0a0a">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="av-silver" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#e8e8e8"/>
+        <stop offset=".5" stop-color="#a8a9ad"/>
+        <stop offset="1" stop-color="#d4d4d4"/>
+      </linearGradient>
+      <symbol id="mark" viewBox="0 0 32 32">
+        <path class="mk-s" d="M16 3.5l10.5 4v7.9c0 6.5-4.4 11.3-10.5 13.6C9.9 26.7 5.5 21.9 5.5 15.4V7.5z" fill="none" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle class="mk-f" cx="16" cy="14" r="2.8"/>
+        <path class="mk-f" d="M14.7 16h2.6l.9 5.4h-4.4z"/>
+      </symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    </defs>
+  </svg>
+
+  <main class="guide">
+    <div class="wrap guide-inner">
+      <a class="back" href="index.html">← Back to Arevei Vault</a>
+      <svg class="guide-mark" width="48" height="48" aria-hidden="true"><use href="#mark"/></svg>
+      <h1>Install the browser extension</h1>
+      <p class="section-lede">Five steps, about two minutes. This works in Microsoft Edge, Chrome and Brave. You need an Arevei Vault account first: the extension signs in to the vault you already created.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="{{EXTENSION_ZIP_URL}}"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>Download the extension (.zip)</a>
+        <!--edge--><a class="btn btn-ghost" href="{{EDGE_EXTENSION_URL}}" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Add to Edge instead</a><!--/edge-->
+      </div>
+      <!--edge--><p class="plan-note">On Edge, the store button is one click and updates itself. Use the steps below for Chrome and Brave.</p><!--/edge-->
+
+      <ol class="guide-steps">
+        <li>
+          <h3>Download the zip.</h3>
+          <p>Use the button above. The file comes from the project's <a href="{{RELEASES_URL}}" target="_blank" rel="noopener">GitHub releases</a>, where every version is listed with its checksum.</p>
+        </li>
+        <li>
+          <h3>Unzip it into a folder you will keep.</h3>
+          <p>For example <code>Documents\Arevei Vault extension</code>. The browser runs the extension from this folder, so don't leave it in Downloads and don't delete it later.</p>
+        </li>
+        <li>
+          <h3>Open the extensions page.</h3>
+          <p>Paste the address into the address bar: <code>edge://extensions</code> in Edge, <code>chrome://extensions</code> in Chrome, <code>brave://extensions</code> in Brave.</p>
+        </li>
+        <li>
+          <h3>Turn on Developer mode.</h3>
+          <p>In Edge the switch is in the left sidebar. In Chrome and Brave it is in the top-right corner.</p>
+        </li>
+        <li>
+          <h3>Click “Load unpacked” and pick the folder.</h3>
+          <p>Choose the folder from step 2, the one that contains <code>manifest.json</code>. Arevei Vault appears in the list. Pin it from the puzzle-piece menu, click its icon and sign in with your email, master password, Secret Key and two-factor code.</p>
+        </li>
+      </ol>
+
+      <h2>Good to know</h2>
+      <ul class="guide-notes">
+        <li><strong>You sign in once.</strong> The extension stays signed in and unlocked on this browser until you lock it or sign out. On a shared computer, set Auto-lock in the extension to a time.</li>
+        <li><strong>Updates are manual.</strong> An extension installed this way does not update itself. To update, download the new zip, replace the files in the same folder, then press Reload on the extensions page.</li>
+        <li><strong>The browser may warn you about developer mode</strong> when it starts. That is expected for an extension installed outside a store. Keep the extension enabled.</li>
+        <li><strong>Your vault stays encrypted.</strong> The extension decrypts on your device, the same way the web vault does. We can't read it.</li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>

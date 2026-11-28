@@ -30,11 +30,26 @@ pnpm --filter extension package      # release build + dist/arevei-vault-{chrome
 
 `package.mjs` refuses to zip an E2E or `--dev` build and prints each archive's SHA-256. Bump `version` in `package.json` before every upload: the stores reject a repeated version.
 
+Pushing a `v*` tag makes CI build the same zip and attach it to the GitHub release as `arevei-vault-extension.zip` (with `SHA256SUMS`), so a machine without Rust can take the store upload from there. That file is also what the landing page's manual-install guide downloads.
+
 | Store | Upload | Notes |
 |---|---|---|
-| Chrome Web Store | `arevei-vault-chrome-*.zip` at https://chrome.google.com/webstore/devconsole | One-time US$5 developer registration. `<all_urls>` puts the item in the slower in-depth review queue. |
-| Microsoft Edge Add-ons | the same Chrome zip | Free; separate Partner Center account |
+| Microsoft Edge Add-ons | `arevei-vault-chrome-*.zip` at https://partner.microsoft.com/dashboard/microsoftedge | Free. First store we publish to; steps below. |
+| GitHub release | attached by CI on a `v*` tag | Free, no review. Users load it unpacked by hand (landing `install-extension.html`) and update by hand. |
+| Chrome Web Store | the same zip at https://chrome.google.com/webstore/devconsole | One-time US$5 developer registration. On hold for now. `<all_urls>` puts the item in the slower in-depth review queue. |
 | Firefox (AMO) | `arevei-vault-firefox-*.zip` | Untested in Firefox so far (see below). AMO also asks for the source code because the bundle is minified. |
+
+### Microsoft Edge Add-ons
+
+1. Register at https://partner.microsoft.com/dashboard/microsoftedge with a Microsoft account (free; pick individual or company).
+2. **Create new extension** and upload the zip. `manifest.json` must be at the zip root, which `package.mjs` guarantees.
+3. **Availability:** Public, all markets.
+4. **Properties:** category Productivity, a privacy-policy URL (required, because the extension handles credentials), the website URL and a support contact.
+5. **Store listing:** description, a 300×300 logo, and at least one screenshot (1280×800 or 640×480).
+6. **Notes for certification:** reviewers can't use the extension without an account. Give them a test account: email, master password, Secret Key and the TOTP secret (or current codes), plus one line on how to sign in from the toolbar popup.
+7. **Publish.** Review takes up to seven business days. Afterwards the listing URL is `https://microsoftedge.microsoft.com/addons/detail/<name>/<id>`: set it as `EDGE_EXTENSION_URL` for the landing build.
+
+Edge rejects an upload whose manifest carries `update_url`; ours has none. The onboarding page names the browser it runs in, so Edge users are sent to `edge://wallet/passwords` for the export.
 
 The Chrome listing asks for a justification per permission (the table below is written for that), a single-purpose statement ("password manager: save, fill and generate credentials"), a data-use disclosure (authentication information and website content are handled; nothing is sold or used for anything but the product), and a public privacy-policy URL. The extension loads no remote code: the WASM engine ships inside the package.
 

@@ -9,6 +9,11 @@ import { rpc } from "./rpc";
  * 4) with consent, turn off Chrome's own password saving.
  */
 
+/** Edge is Chromium too, but its password manager lives elsewhere and exports under another name. */
+const EDGE = /Edg\//.test(navigator.userAgent);
+const BROWSER = EDGE ? "Edge" : "Chrome";
+const EXPORT_PAGE = EDGE ? "edge://wallet/passwords" : "chrome://password-manager/settings";
+
 function ChromeSaving() {
   const [granted, setGranted] = useState<boolean | null>(null);
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -30,7 +35,7 @@ function ChromeSaving() {
     setError(null);
     // Must be called from a user gesture on an extension page.
     const ok = granted || (await chrome.permissions.request({ permissions: ["privacy"] }));
-    if (!ok) return setError("Permission was not granted. Chrome will keep offering to save passwords.");
+    if (!ok) return setError(`Permission was not granted. ${BROWSER} will keep offering to save passwords.`);
     try {
       await chrome.privacy.services.passwordSavingEnabled.set({ value: false });
     } catch (e: any) {
@@ -46,16 +51,16 @@ function ChromeSaving() {
   return (
     <section className="card">
       <h2>
-        <ShieldCheck size={18} strokeWidth={1.5} /> Step 4 — Stop Chrome from offering to save passwords
+        <ShieldCheck size={18} strokeWidth={1.5} /> Step 4 — Stop {BROWSER} from offering to save passwords
       </h2>
       <p className="muted">
-        So only Arevei Vault prompts you, we can turn off Chrome's built-in password saving. This needs the optional "privacy" permission and is reversible here
-        at any time. Your existing Chrome passwords are not deleted.
+        So only Arevei Vault prompts you, we can turn off {BROWSER}'s built-in password saving. This needs the optional "privacy" permission and is reversible here
+        at any time. Your existing {BROWSER} passwords are not deleted.
       </p>
       <p>
         Current state:{" "}
         <strong>
-          {enabled === null ? (granted === false ? "unknown (permission not granted)" : "…") : enabled ? "Chrome saving is ON" : "Chrome saving is OFF"}
+          {enabled === null ? (granted === false ? "unknown (permission not granted)" : "…") : enabled ? `${BROWSER} saving is ON` : `${BROWSER} saving is OFF`}
         </strong>
         {control === "controlled_by_other_extensions" && " (controlled by another extension)"}
         {control === "not_controllable" && " (managed by policy)"}
@@ -68,12 +73,12 @@ function ChromeSaving() {
       <div className="actions">
         {enabled !== false && (
           <button className="primary" onClick={turnOff}>
-            Turn off Chrome password saving
+            Turn off {BROWSER} password saving
           </button>
         )}
         {enabled === false && control === "controlled_by_this_extension" && (
           <button className="secondary" onClick={revert}>
-            Restore Chrome's default
+            Restore {BROWSER}'s default
           </button>
         )}
       </div>
@@ -106,7 +111,7 @@ function Import() {
       <label>
         Format{" "}
         <select className="input" value={format} onChange={(e) => setFormat(e.target.value)}>
-          <option value="chrome">Chrome / Google Password Manager (CSV)</option>
+          <option value="chrome">Chrome / Edge / Google Password Manager (CSV)</option>
           <option value="bitwarden">Bitwarden (CSV)</option>
           <option value="one_password">1Password (CSV)</option>
           <option value="last_pass">LastPass (CSV)</option>
@@ -176,16 +181,22 @@ function App() {
   return (
     <main className="onboarding">
       <h1>Set up Arevei Vault</h1>
-      <p className="muted">Move your saved passwords out of Chrome and make Arevei Vault your only password manager.</p>
+      <p className="muted">Move your saved passwords out of {BROWSER} and make Arevei Vault your only password manager.</p>
       <Account />
       <section className="card">
-        <h2>Step 1 — Export your Chrome passwords</h2>
+        <h2>Step 1 — Export your {BROWSER} passwords</h2>
         <ol>
           <li>
-            Open <code>chrome://password-manager/settings</code> in a new tab (copy and paste it; extensions can't open it for you).
+            Open <code>{EXPORT_PAGE}</code> in a new tab (copy and paste it; extensions can't open it for you).
           </li>
-          <li>Under "Export passwords", choose Download file and confirm with your device password.</li>
-          <li>Chrome saves a file named like "Chrome Passwords.csv". It contains your passwords in plain text.</li>
+          <li>
+            {EDGE
+              ? 'Open the "…" menu next to "Add password", choose Export passwords and confirm with your device password.'
+              : 'Under "Export passwords", choose Download file and confirm with your device password.'}
+          </li>
+          <li>
+            {BROWSER} saves a file named like "{EDGE ? "Microsoft Edge Passwords.csv" : "Chrome Passwords.csv"}". It contains your passwords in plain text.
+          </li>
         </ol>
       </section>
       <Import />

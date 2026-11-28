@@ -1,5 +1,5 @@
 // Zips the built extension for store upload:
-//   dist/arevei-vault-chrome-<version>.zip    Chrome Web Store, Edge Add-ons
+//   dist/arevei-vault-chrome-<version>.zip    Edge Add-ons, Chrome Web Store, GitHub release
 //   dist/arevei-vault-firefox-<version>.zip   addons.mozilla.org
 // Run after build.mjs (`pnpm --filter extension package` does both). Refuses to package a test or
 // development build. File order and timestamps are fixed, so the same build gives the same zip.
