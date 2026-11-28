@@ -52,7 +52,7 @@ Companion to [architecture.md](architecture.md). Section references (§) point t
 | Threat | Mitigation | Residual risk |
 |---|---|---|
 | Modified bundle captures the master password and keys | Reproducible builds + signed published hashes; the extension verifies the served build; the extension and iOS app are the high-assurance clients; org policy can forbid web unlock for admins (§12.3) | **A user who unlocks in the plain web app without the extension can't detect a targeted malicious bundle.** This is inherent to web-delivered crypto and is documented for users. |
-| Third-party script or CDN compromise | None used; CSP `script-src 'self'`; SRI | — |
+| Third-party script or CDN compromise | None used in the app; CSP `script-src 'self'`; SRI. The landing page at `/welcome` loads Google Tag Manager under its own CSP (Google hosts only, no inline script, no `connect-src 'self'`) | **GTM runs on the vault's origin.** A compromised GTM account or Google script could read origin storage or replace the landing page's links. Restrict container edit access. |
 | Malicious npm or crate dependency (supply chain) | Lockfiles, `cargo deny`, `pnpm audit`, minimal dependency set, Renovate with human review, no install scripts (`pnpm` `ignore-scripts` with an allow-list) | A malicious upstream release that slips through review. Reproducible builds make it detectable after the fact, not preventable. |
 | XSS from attacker-authored item content (shared notes, imported CSVs) | No HTML rendering of user content; structured rich text; Trusted Types; CSP (§12.1) | — |
 

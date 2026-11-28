@@ -3,7 +3,7 @@
 The static marketing page for Arevei Vault, positioned for solo founders. The copy comes from the "Arevei Vault — Landing Page Copy (Solo Founders)" doc.
 
 - The page itself uses no JavaScript. By default it ships under `default-src 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:`, plus `form-action` for the one form below.
-- Google Tag Manager is opt-in: build with `GTM_ID=GTM-XXXXXXX` and every page loads `gtm-init.js` and the container, and the CSP also admits `www.googletagmanager.com` scripts and Google Analytics requests (no inline script). The standalone Vercel project sets it in `landing/vercel.json`. The build refuses `GTM_ID` for the `/welcome` copy on the vault's origin, so no third-party script ever runs there.
+- Google Tag Manager is opt-in: build with `GTM_ID=GTM-XXXXXXX` and every page loads `gtm-init.js` and the container, and the CSP also admits `www.googletagmanager.com` scripts and Google Analytics requests (no inline script). It is set in `deploy/vercel/build-web.sh` for the `/welcome` copy on `vault.arevei.com` and in `landing/vercel.json` for the standalone project. On `/welcome` the tag runs on the vault's origin, so treat edit access to the GTM container like deploy access: the CSP allows only Google hosts and no inline script, so do not add Custom HTML tags.
 - Colors come from `packages/ui/src/tokens.css`, the same tokens as the app. Dark by default, and it follows the system light/dark setting.
 - Fonts are self-hosted from the web app's `@fontsource` packages, so run `pnpm install` first.
 

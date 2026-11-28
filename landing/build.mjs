@@ -8,7 +8,7 @@
 // latest GitHub release), ASSET_BASE (default "": relative
 // assets; e.g. "/welcome/" when the page is served from a subfolder of the web app's origin),
 // GTM_ID (a Google Tag Manager container id, e.g. GTM-XXXXXXX; adds the tag and loosens the CSP for
-// it. Unset: no JavaScript at all. Refused when the page shares the vault's origin).
+// it. Unset: no JavaScript at all).
 
 import { copyFileSync, createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -31,12 +31,10 @@ for (const [k, v] of Object.entries({ EDGE_EXTENSION_URL, EXTENSION_ZIP_URL })) 
 const ASSET_BASE = process.env.ASSET_BASE || "";
 const GTM_ID = (process.env.GTM_ID || "").trim();
 if (GTM_ID && !/^GTM-[A-Z0-9]+$/.test(GTM_ID)) throw new Error("GTM_ID must look like GTM-XXXXXXX");
-// A tag manager runs third-party code with the page's origin. Never let that be the vault's origin.
-if (GTM_ID && (ASSET_BASE || !/^https?:\/\//.test(APP_URL))) {
-  throw new Error("GTM_ID is only allowed when the landing page is on its own origin (no ASSET_BASE, absolute APP_URL)");
-}
+// Note: a tag manager runs third-party code with the page's origin. In the single-domain setup
+// (/welcome) that is the vault's origin; the CSP below limits it to Google hosts and no inline code.
 const gtmTags = GTM_ID
-  ? `  <script src="gtm-init.js"></script>\n  <script async src="https://www.googletagmanager.com/gtm.js?id=${GTM_ID}"></script>\n`
+  ? `  <script src="${ASSET_BASE}gtm-init.js"></script>\n  <script async src="https://www.googletagmanager.com/gtm.js?id=${GTM_ID}"></script>\n`
   : "";
 
 rmSync(out, { recursive: true, force: true });
@@ -92,8 +90,7 @@ writeFileSync(
 // only form posts to the vault API, which answers with a redirect back to this site. media-src
 // allows the launch film; it is fetched only when the visitor presses play. With GTM_ID the policy
 // also admits Google Tag Manager and Google Analytics, and nothing inline.
-// Keep this policy in step with landing/vercel.json (GTM build) and the /welcome rule in
-// web/vercel.json (no GTM).
+// Keep this policy in step with landing/vercel.json and the /welcome rule in web/vercel.json.
 const formAction = /^https?:\/\//.test(APP_URL) ? `'self' ${new URL(APP_URL).origin}` : "'self'";
 const gtmCsp = GTM_ID
   ? ["script-src 'self' https://www.googletagmanager.com; connect-src https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; ", " https://*.google-analytics.com https://*.googletagmanager.com"]

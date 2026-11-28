@@ -8,7 +8,7 @@ bash scripts/build-wasm.sh
 pnpm --filter web build
 
 # Landing page shares the app's origin: same-origin links, assets under /welcome/.
-APP_URL=/ ASSET_BASE=/welcome/ node landing/build.mjs
+APP_URL=/ ASSET_BASE=/welcome/ GTM_ID=GTM-PL2X5WDJ node landing/build.mjs
 mkdir -p web/dist/welcome
 cp -r landing/dist/. web/dist/welcome/
 rm -f web/dist/welcome/_headers
